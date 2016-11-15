@@ -41,6 +41,18 @@ macro_rules! sprintln {
     ($($arg:tt)*) => { sprint!($($arg)* "\n") }
 }
 
+macro_rules! sprerr {
+    ($($arg:tt)*) => { {
+        use ::std::io::Write;
+        let o = ::std::io::stderr();
+        swrite!(o.lock(), $($arg)*).unwrap();
+    } }
+}
+
+macro_rules! sprerrln {
+    ($($arg:tt)*) => { sprerr!($($arg)* "\n") }
+}
+
 macro_rules! sformat {
     () => { String::new() };
     ($($arg:tt)*) => { {
