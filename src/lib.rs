@@ -14,10 +14,12 @@ macro_rules! swrite {
         (||{
             let mut _w = $writer;
             $(
-                try!( swrite!(@one _w, $part) );
+                match swrite!(@one _w, $part) {
+                    Ok(()) => (),
+                    error => return error,
+                }
             )*
-            let ret: ::std::fmt::Result = Ok(());
-            ret
+            Ok(())
         })()
     };
     ($writer:expr) => { swrite!($writer,) };
@@ -29,6 +31,7 @@ macro_rules! swriteln {
 
 macro_rules! sprint {
     ($($arg:tt)*) => { {
+        use ::std::io::Write;
         let o = ::std::io::stdout();
         swrite!(o.lock(), $($arg)*).unwrap();
     } }
@@ -71,7 +74,7 @@ fn vec() {
 fn write() {
     use std::io::Write;
     let mut v = Vec::new();
-    writeln!(&mut v, "hi!").unwrap();
+    swriteln!(&mut v, "hi" "!").unwrap();
     assert_eq!(v, "hi!\n".as_bytes());
 }
 
@@ -79,4 +82,13 @@ fn write() {
 fn format() {
     assert_eq!( sformat!({5:02}), "05" );
     assert_eq!( sformat!({"{}-{}", 4, 2}), "4-2" );
+}
+
+#[test]
+fn hello() {
+    let foo = "foo";
+    let x = 2;
+    let y = 4;
+    sprintln!("Bar "(foo)" and "(x));
+    sprintln!( (x)"<"(y) );
 }
