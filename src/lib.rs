@@ -12,6 +12,14 @@ macro_rules! swrite {
         write!($w, "{}", concat!($string))
     };
 
+    // expression parsing (manually, because we can't use :expr before `{`)
+    (@expr $w:ident {$($before:tt)*} ($($e:tt)*) {$($block:tt)*} $($rest:tt)* ) => {
+        swrite!(@rec $w, $($before)* ($($e)*) {$($block)*} $($rest)*)
+    };
+    (@expr $w:ident {$($before:tt)*} ($($expr:tt)*) $tt:tt $($rest:tt)* ) => {
+        swrite!(@expr $w {$($before)*} ($($expr)* $tt) $($rest)*)
+    };
+
     // recursive parsing -------------------------------------------------------
     // for
     (@rec $w:ident, for $p:pat in ($e:expr) { $($body:tt)* } $($rest:tt)* ) => {
@@ -22,10 +30,8 @@ macro_rules! swrite {
             swrite!(@rec $w, $($rest)*);
         }
     };
-    (@rec $w:ident, for $($rest:tt)* ) => {
-        {
-            let NOTE: () = "use parens around expression: for PAT in (EXPR) { BODY }";
-        }
+    (@rec $w:ident, for $p:pat in $($tt:tt)* ) => {
+        swrite!(@expr $w { for $p in } () $($tt)*)
     };
 
     // match
@@ -41,11 +47,8 @@ macro_rules! swrite {
             swrite!(@rec $w, $($rest)*);
         }
     };
-    (@rec $w:ident, match $($rest:tt)* ) => {
-        {
-            let NOTE: () = "use parens around expression: match (EXPR) { PAT => { BODY } ... }";
-            let NOTE: () = "don't use commas after arms";
-        }
+    (@rec $w:ident, match $($tt:tt)* ) => {
+        swrite!(@expr $w { match } () $($tt)*)
     };
 
     // if let
@@ -65,10 +68,8 @@ macro_rules! swrite {
     (@rec $w:ident, if let $p:pat = ($e:expr) { $($then:tt)* } $($rest:tt)* ) => {
         swrite!(@rec $w, if let $p = ($e) { $($then)* } else {} $($rest)*);
     };
-    (@rec $w:ident, if let $($rest:tt)* ) => {
-        {
-            let NOTE: () = "use parens around expression: if let PAT = (EXPR) { BODY }";
-        }
+    (@rec $w:ident, if let $p:pat = $($tt:tt)* ) => {
+        swrite!(@expr $w { if let $p = } () $($tt)*)
     };
 
     // if
@@ -88,11 +89,11 @@ macro_rules! swrite {
     (@rec $w:ident, if ($cond:expr) { $($then:tt)* } $($rest:tt)* ) => {
         swrite!(@rec $w, if ($cond) { $($then)* } else {} $($rest)*);
     };
-    (@rec $w:ident, if $($rest:tt)* ) => {
-        {
-            let NOTE: () = "use parens around expression: if (EXPR) { BODY }";
-        }
+    (@rec $w:ident, if $($tt:tt)* ) => {
+        swrite!(@expr $w { if } () $($tt)*)
     };
+
+    // single tt
     (@rec $w:ident, $part:tt $($rest:tt)*) => {
         {
             match swrite!(@one $w, $part) {
@@ -103,6 +104,7 @@ macro_rules! swrite {
         }
     };
 
+    // terminator
     (@rec $w:ident, ) => { () };
 
     (@ifelseerror) => {
@@ -206,26 +208,29 @@ fn hello() {
     let x = 2;
     let y = 4;
     sprintln!("Bar "(foo)" and "(x));
-    sprintln!( (x)"<"(y) );
+    sprintln!( (x)" < "(y) );
     sprintln!( for x in (&[1,2,3]) { (x)" :: " } "nil" );
 }
 
 #[test]
 fn matrix() {
     let matrix = vec![vec![0]];
-    assert_eq!(sformat!( for row in (&matrix) { for x in (row) { {x:3} } "\n" } ), "  0\n");
+    assert_eq!(
+        sformat!( for row in &matrix { for x in row { {x:3} } "\n" } ),
+        "  0\n"
+    );
 }
 
 #[test]
 fn boo() {
     let a = Some(5);
-    sprintln!(if let Some(_) = (a) { "yes" });
+    sprintln!(if let Some(_) = a { "yes" });
 }
 
 #[test]
 fn test_match() {
     let s = sformat!(
-        match (Some(5)) {
+        match Some(5) {
             Some(x) if x > 3 => { (x) }
             Some(2) | None => {}
             _ => {}
