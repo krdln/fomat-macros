@@ -1,4 +1,5 @@
 macro_rules! swrite {
+    // single tt rules ---------------------------------------------------------
     (@one $w:ident, ($e:expr)) => { write!($w, "{}", $e) };
     (@one $w:ident, [$e:expr]) => { write!($w, "{:?}", $e) };
     (@one $w:ident, {$e:tt : $($fmt:tt)*}) => {
@@ -11,6 +12,8 @@ macro_rules! swrite {
         write!($w, "{}", concat!($string))
     };
 
+    // recursive parsing -------------------------------------------------------
+    // for
     (@rec $w:ident, for $p:pat in ($e:expr) { $($body:tt)* } $($rest:tt)* ) => {
         {
             for $p in $e {
@@ -24,6 +27,51 @@ macro_rules! swrite {
             let NOTE: () = "use parens around expression: for PAT in (EXPR) { BODY }";
         }
     };
+
+    // match
+    (@rec $w:ident, match ($e:expr) { $( $($p:pat)|+ $(if $g:expr)* => { $($body:tt)* } )* } $($rest:tt)* ) => {
+        {
+            match $e {
+                $(
+                    $($p)|+ $(if $g)* => {
+                        swrite!(@rec $w, $($body)*)
+                    }
+                )*
+            }
+            swrite!(@rec $w, $($rest)*);
+        }
+    };
+    (@rec $w:ident, match $($rest:tt)* ) => {
+        {
+            let NOTE: () = "use parens around expression: match (EXPR) { PAT => { BODY } ... }";
+            let NOTE: () = "don't use commas after arms";
+        }
+    };
+
+    // if let
+    (@rec $w:ident, if let $p:pat = ($e:expr) { $($then:tt)* } else { $($els:tt)* } $($rest:tt)* ) => {
+        {
+            if let $p = $e {
+                swrite!(@rec $w, $($then)*);
+            } else {
+                swrite!(@rec $w, $($els)*);
+            }
+            swrite!(@rec $w, $($rest)*);
+        }
+    };
+    (@rec $w:ident, if let $p:pat = ($e:expr) { $($then:tt)* } else if $($rest:tt)* ) => {
+        swrite!(@ifelseerror)
+    };
+    (@rec $w:ident, if let $p:pat = ($e:expr) { $($then:tt)* } $($rest:tt)* ) => {
+        swrite!(@rec $w, if let $p = ($e) { $($then)* } else {} $($rest)*);
+    };
+    (@rec $w:ident, if let $($rest:tt)* ) => {
+        {
+            let NOTE: () = "use parens around expression: if let PAT = (EXPR) { BODY }";
+        }
+    };
+
+    // if
     (@rec $w:ident, if ($cond:expr) { $($then:tt)* } else { $($els:tt)* } $($rest:tt)* ) => {
         {
             if $cond {
@@ -35,17 +83,14 @@ macro_rules! swrite {
         }
     };
     (@rec $w:ident, if ($cont:expr) { $($then:tt)* } else if $($rest:tt)* ) => {
-        {
-            let ERROR: () = "`else if` is unsupported";
-            let NOTE: () = "use `match` or `else { if ... }` instead";
-        }
+        swrite!(@ifelseerror)
     };
     (@rec $w:ident, if ($cond:expr) { $($then:tt)* } $($rest:tt)* ) => {
         swrite!(@rec $w, if ($cond) { $($then)* } else {} $($rest)*);
     };
     (@rec $w:ident, if $($rest:tt)* ) => {
         {
-            let () = "note: use parens around expression: if (EXPR) { BODY }";
+            let NOTE: () = "use parens around expression: if (EXPR) { BODY }";
         }
     };
     (@rec $w:ident, $part:tt $($rest:tt)*) => {
@@ -57,8 +102,17 @@ macro_rules! swrite {
             swrite!(@rec $w, $($rest)*);
         }
     };
+
     (@rec $w:ident, ) => { () };
 
+    (@ifelseerror) => {
+        {
+            let ERROR: () = "`else if` is unsupported";
+            let NOTE: () = "use `match` or `else { if ... }` instead";
+        }
+    };
+
+    // entry point -------------------------------------------------------------
     ($writer:expr, $($part:tt)*) => {
         (||{
             let mut _w = $writer;
@@ -160,4 +214,23 @@ fn hello() {
 fn matrix() {
     let matrix = vec![vec![0]];
     assert_eq!(sformat!( for row in (&matrix) { for x in (row) { {x:3} } "\n" } ), "  0\n");
+}
+
+#[test]
+fn boo() {
+    let a = Some(5);
+    sprintln!(if let Some(_) = (a) { "yes" });
+}
+
+#[test]
+fn test_match() {
+    let s = sformat!(
+        match (Some(5)) {
+            Some(x) if x > 3 => { (x) }
+            Some(2) | None => {}
+            _ => {}
+        }
+        "."
+    );
+    assert_eq!(s, "5.");
 }
