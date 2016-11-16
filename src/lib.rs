@@ -1,3 +1,4 @@
+#[macro_export]
 macro_rules! swrite {
     // single tt rules ---------------------------------------------------------
     (@one $w:ident, ($e:expr)) => { write!($w, "{}", $e) };
@@ -125,10 +126,12 @@ macro_rules! swrite {
     ($writer:expr) => { swrite!($writer,) };
 }
 
+#[macro_export]
 macro_rules! swriteln {
     ($($arg:tt)*) => { swrite!($($arg)* "\n") }
 }
 
+#[macro_export]
 macro_rules! sprint {
     ($($arg:tt)*) => {
         {
@@ -139,10 +142,12 @@ macro_rules! sprint {
     }
 }
 
+#[macro_export]
 macro_rules! sprintln {
     ($($arg:tt)*) => { sprint!($($arg)* "\n") }
 }
 
+#[macro_export]
 macro_rules! sprerr {
     ($($arg:tt)*) => {
         {
@@ -153,10 +158,12 @@ macro_rules! sprerr {
     }
 }
 
+#[macro_export]
 macro_rules! sprerrln {
     ($($arg:tt)*) => { sprerr!($($arg)* "\n") }
 }
 
+#[macro_export]
 macro_rules! sformat {
     () => { String::new() };
     ($($arg:tt)*) => {
