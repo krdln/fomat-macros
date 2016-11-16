@@ -36,7 +36,13 @@ macro_rules! swrite {
     };
 
     // match
-    (@rec $w:ident, match ($e:expr) { $( $($p:pat)|+ $(if $g:expr)* => { $($body:tt)* } )* } $($rest:tt)* ) => {
+    (
+        @rec $w:ident,
+        match ($e:expr) {
+            $( $($p:pat)|+ $(if $g:expr)* => { $($body:tt)* } )*
+        }
+        $($rest:tt)*
+    ) => {
         {
             match $e {
                 $(
@@ -53,7 +59,12 @@ macro_rules! swrite {
     };
 
     // if let
-    (@rec $w:ident, if let $p:pat = ($e:expr) { $($then:tt)* } else { $($els:tt)* } $($rest:tt)* ) => {
+    (
+        @rec $w:ident,
+        if let $p:pat = ($e:expr) { $($then:tt)* }
+        else { $($els:tt)* }
+        $($rest:tt)*
+    ) => {
         {
             if let $p = $e {
                 swrite!(@rec $w, $($then)*);
@@ -63,10 +74,18 @@ macro_rules! swrite {
             swrite!(@rec $w, $($rest)*);
         }
     };
-    (@rec $w:ident, if let $p:pat = ($e:expr) { $($then:tt)* } else if $($rest:tt)* ) => {
+    (
+        @rec $w:ident,
+        if let $p:pat = ($e:expr) { $($then:tt)* }
+        else if $($rest:tt)*
+    ) => {
         swrite!(@ifelseerror)
     };
-    (@rec $w:ident, if let $p:pat = ($e:expr) { $($then:tt)* } $($rest:tt)* ) => {
+    (
+        @rec $w:ident,
+        if let $p:pat = ($e:expr) { $($then:tt)* }
+        $($rest:tt)*
+    ) => {
         swrite!(@rec $w, if let $p = ($e) { $($then)* } else {} $($rest)*);
     };
     (@rec $w:ident, if let $p:pat = $($tt:tt)* ) => {
@@ -74,7 +93,12 @@ macro_rules! swrite {
     };
 
     // if
-    (@rec $w:ident, if ($cond:expr) { $($then:tt)* } else { $($els:tt)* } $($rest:tt)* ) => {
+    (
+        @rec $w:ident,
+        if ($cond:expr) { $($then:tt)* }
+        else { $($els:tt)* }
+        $($rest:tt)*
+    ) => {
         {
             if $cond {
                 swrite!(@rec $w, $($then)*);
@@ -84,7 +108,11 @@ macro_rules! swrite {
             swrite!(@rec $w, $($rest)*);
         }
     };
-    (@rec $w:ident, if ($cont:expr) { $($then:tt)* } else if $($rest:tt)* ) => {
+    (
+        @rec $w:ident,
+        if ($cont:expr) { $($then:tt)* }
+        else if $($rest:tt)*
+    ) => {
         swrite!(@ifelseerror)
     };
     (@rec $w:ident, if ($cond:expr) { $($then:tt)* } $($rest:tt)* ) => {
