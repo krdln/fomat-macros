@@ -7,6 +7,16 @@ extern crate test;
 use test::{Bencher, black_box};
 
 #[bench]
+fn literal_fomat(b: &mut Bencher) {
+    b.iter(|| fomat!("Hello"))
+}
+
+#[bench]
+fn literal_format(b: &mut Bencher) {
+    b.iter(|| format!("Hello"))
+}
+
+#[bench]
 fn short_fomat(b: &mut Bencher) {
     let world = "world";
     b.iter(|| fomat!("Hello, "(black_box(world))"!") )

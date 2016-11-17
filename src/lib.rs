@@ -1,3 +1,22 @@
+use std::io;
+
+#[doc(hidden)]
+// Shortcut for writing string literals,
+// so they don't go through write_fmt machinery.
+pub trait WriteStrExt {
+    type Result;
+    fn write_str(&mut self, s: &str) -> Self::Result;
+}
+
+// The fmt::Write already has this method,
+// so we implement it only for W: io::Write.
+impl<W: io::Write> WriteStrExt for W {
+    type Result = io::Result<()>;
+    fn write_str(&mut self, s: &str) -> Self::Result {
+        self.write_all(s.as_bytes())
+    }
+}
+
 #[macro_export]
 macro_rules! wite {
     // single tt rules ---------------------------------------------------------
@@ -10,7 +29,12 @@ macro_rules! wite {
         write!($w, $($arg)*)
     };
     (@one $w:ident, $string:tt) => {
-        write!($w, "{}", concat!($string))
+        {
+            #[allow(unused_imports)]
+            use $crate::WriteStrExt;
+
+            $w.write_str(concat!($string))
+        }
     };
 
     // expression parsing (manually, because we can't use :expr before `{`)
@@ -147,6 +171,14 @@ macro_rules! wite {
     ($writer:expr, $($part:tt)*) => {
         (||{
             let mut _w = $writer;
+            if false {
+                // This dummy write's purpose is to silence a warning
+                // about "unused import `Write`". We can't just
+                // do `let _: Option<&Write> = None;` though, because
+                // in case when writing to Formatter, the `Write` trait
+                // doesn't have to be in scope.
+                let _ = write!(_w, "");
+            }
             wite!(@rec _w, $($part)*);
             Ok(())
         })()
@@ -194,7 +226,7 @@ macro_rules! perrln {
 macro_rules! fomat {
     // capacity estimation -----------------------------------------------------
     (@cap ($len:expr, $multiplier:expr)) => {
-        $len * $multiplier
+        ($len, $multiplier)
     };
 
     // skip all irrelevant tts and conditional bodies
@@ -246,7 +278,8 @@ macro_rules! fomat {
     ($($arg:tt)*) => {
         {
             use ::std::fmt::Write;
-            let mut _s = String::with_capacity( fomat!(@cap (0, 1) $($arg)*) );
+            let (len, mul) = fomat!(@cap (0, 1) $($arg)*);
+            let mut _s = String::with_capacity(len * mul);
             wite!(&mut _s, $($arg)*).ok();
             _s
         }
@@ -337,4 +370,18 @@ fn capacity() {
         "!"
     );
     assert_eq!(s.capacity(), 6);
+}
+
+#[test]
+fn fmt_write() {
+    use std::fmt;
+    struct Foo;
+
+    impl fmt::Display for Foo {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            wite!(f, "foo"(42))
+        }
+    }
+
+    assert_eq!(format!("{}", Foo), "foo42");
 }
