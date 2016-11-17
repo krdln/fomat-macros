@@ -1,5 +1,5 @@
 #[macro_export]
-macro_rules! swrite {
+macro_rules! wite {
     // single tt rules ---------------------------------------------------------
     (@one $w:ident, ($e:expr)) => { write!($w, "{}", $e) };
     (@one $w:ident, [$e:expr]) => { write!($w, "{:?}", $e) };
@@ -15,10 +15,10 @@ macro_rules! swrite {
 
     // expression parsing (manually, because we can't use :expr before `{`)
     (@expr $w:ident {$($before:tt)*} ($($e:tt)*) {$($block:tt)*} $($rest:tt)* ) => {
-        swrite!(@rec $w, $($before)* ($($e)*) {$($block)*} $($rest)*)
+        wite!(@rec $w, $($before)* ($($e)*) {$($block)*} $($rest)*)
     };
     (@expr $w:ident {$($before:tt)*} ($($expr:tt)*) $tt:tt $($rest:tt)* ) => {
-        swrite!(@expr $w {$($before)*} ($($expr)* $tt) $($rest)*)
+        wite!(@expr $w {$($before)*} ($($expr)* $tt) $($rest)*)
     };
 
     // recursive parsing -------------------------------------------------------
@@ -26,13 +26,13 @@ macro_rules! swrite {
     (@rec $w:ident, for $p:pat in ($e:expr) { $($body:tt)* } $($rest:tt)* ) => {
         {
             for $p in $e {
-                swrite!(@rec $w, $($body)*);
+                wite!(@rec $w, $($body)*);
             }
-            swrite!(@rec $w, $($rest)*);
+            wite!(@rec $w, $($rest)*);
         }
     };
     (@rec $w:ident, for $p:pat in $($tt:tt)* ) => {
-        swrite!(@expr $w { for $p in } () $($tt)*)
+        wite!(@expr $w { for $p in } () $($tt)*)
     };
 
     // match
@@ -47,15 +47,15 @@ macro_rules! swrite {
             match $e {
                 $(
                     $($p)|+ $(if $g)* => {
-                        swrite!(@rec $w, $($body)*)
+                        wite!(@rec $w, $($body)*)
                     }
                 )*
             }
-            swrite!(@rec $w, $($rest)*);
+            wite!(@rec $w, $($rest)*);
         }
     };
     (@rec $w:ident, match $($tt:tt)* ) => {
-        swrite!(@expr $w { match } () $($tt)*)
+        wite!(@expr $w { match } () $($tt)*)
     };
 
     // if let
@@ -67,11 +67,11 @@ macro_rules! swrite {
     ) => {
         {
             if let $p = $e {
-                swrite!(@rec $w, $($then)*);
+                wite!(@rec $w, $($then)*);
             } else {
-                swrite!(@rec $w, $($els)*);
+                wite!(@rec $w, $($els)*);
             }
-            swrite!(@rec $w, $($rest)*);
+            wite!(@rec $w, $($rest)*);
         }
     };
     (
@@ -79,17 +79,17 @@ macro_rules! swrite {
         if let $p:pat = ($e:expr) { $($then:tt)* }
         else if $($rest:tt)*
     ) => {
-        swrite!(@ifelseerror)
+        wite!(@ifelseerror)
     };
     (
         @rec $w:ident,
         if let $p:pat = ($e:expr) { $($then:tt)* }
         $($rest:tt)*
     ) => {
-        swrite!(@rec $w, if let $p = ($e) { $($then)* } else {} $($rest)*);
+        wite!(@rec $w, if let $p = ($e) { $($then)* } else {} $($rest)*);
     };
     (@rec $w:ident, if let $p:pat = $($tt:tt)* ) => {
-        swrite!(@expr $w { if let $p = } () $($tt)*)
+        wite!(@expr $w { if let $p = } () $($tt)*)
     };
 
     // if
@@ -101,11 +101,11 @@ macro_rules! swrite {
     ) => {
         {
             if $cond {
-                swrite!(@rec $w, $($then)*);
+                wite!(@rec $w, $($then)*);
             } else {
-                swrite!(@rec $w, $($els)*);
+                wite!(@rec $w, $($els)*);
             }
-            swrite!(@rec $w, $($rest)*);
+            wite!(@rec $w, $($rest)*);
         }
     };
     (
@@ -113,23 +113,23 @@ macro_rules! swrite {
         if ($cont:expr) { $($then:tt)* }
         else if $($rest:tt)*
     ) => {
-        swrite!(@ifelseerror)
+        wite!(@ifelseerror)
     };
     (@rec $w:ident, if ($cond:expr) { $($then:tt)* } $($rest:tt)* ) => {
-        swrite!(@rec $w, if ($cond) { $($then)* } else {} $($rest)*);
+        wite!(@rec $w, if ($cond) { $($then)* } else {} $($rest)*);
     };
     (@rec $w:ident, if $($tt:tt)* ) => {
-        swrite!(@expr $w { if } () $($tt)*)
+        wite!(@expr $w { if } () $($tt)*)
     };
 
     // single tt
     (@rec $w:ident, $part:tt $($rest:tt)*) => {
         {
-            match swrite!(@one $w, $part) {
+            match wite!(@one $w, $part) {
                 Ok(_) => (),
                 error => return error,
             }
-            swrite!(@rec $w, $($rest)*);
+            wite!(@rec $w, $($rest)*);
         }
     };
 
@@ -147,58 +147,107 @@ macro_rules! swrite {
     ($writer:expr, $($part:tt)*) => {
         (||{
             let mut _w = $writer;
-            swrite!(@rec _w, $($part)*);
+            wite!(@rec _w, $($part)*);
             Ok(())
         })()
     };
-    ($writer:expr) => { swrite!($writer,) };
 }
 
 #[macro_export]
-macro_rules! swriteln {
-    ($($arg:tt)*) => { swrite!($($arg)* "\n") }
+macro_rules! witeln {
+    ($($arg:tt)*) => { wite!($($arg)* "\n") }
 }
 
 #[macro_export]
-macro_rules! sprint {
+macro_rules! pint {
     ($($arg:tt)*) => {
         {
             use ::std::io::Write;
             let o = ::std::io::stdout();
-            swrite!(o.lock(), $($arg)*).unwrap();
+            wite!(o.lock(), $($arg)*).unwrap();
         }
     }
 }
 
 #[macro_export]
-macro_rules! sprintln {
-    ($($arg:tt)*) => { sprint!($($arg)* "\n") }
+macro_rules! pintln {
+    ($($arg:tt)*) => { pint!($($arg)* "\n") }
 }
 
 #[macro_export]
-macro_rules! sprerr {
+macro_rules! perr {
     ($($arg:tt)*) => {
         {
             use ::std::io::Write;
             let o = ::std::io::stderr();
-            swrite!(o.lock(), $($arg)*).unwrap();
+            wite!(o.lock(), $($arg)*).unwrap();
         }
     }
 }
 
 #[macro_export]
-macro_rules! sprerrln {
-    ($($arg:tt)*) => { sprerr!($($arg)* "\n") }
+macro_rules! perrln {
+    ($($arg:tt)*) => { perr!($($arg)* "\n") }
 }
 
 #[macro_export]
-macro_rules! sformat {
+macro_rules! fomat {
+    // capacity estimation -----------------------------------------------------
+    (@cap ($len:expr, $multiplier:expr)) => {
+        $len * $multiplier
+    };
+
+    // skip all irrelevant tts and conditional bodies
+    (@cap ($($lm:tt)*) for $p:pat in $($tt:tt)*) => {
+        fomat!(@cap-ignore ($($lm)*) $($tt)*)
+    };
+    (@cap ($($lm:tt)*) if let $p:pat = $($tt:tt)*) => {
+        fomat!(@cap-ignore ($($lm)*) $($tt)*)
+    };
+    (@cap ($($lm:tt)*) if $($tt:tt)*) => {
+        fomat!(@cap-ignore ($($lm)*) $($tt)*)
+    };
+    (@cap ($($lm:tt)*) else $($tt:tt)*) => {
+        fomat!(@cap-ignore ($($lm)*) $($tt)*)
+    };
+    (@cap ($($lm:tt)*) match $($tt:tt)*) => {
+        fomat!(@cap-ignore ($($lm)*) $($tt)*)
+    };
+
+    // When there's any unconditional string interpolation,
+    // we multiply the initial capacity by 2
+    // (which would probably happen anyway).
+    (@cap ($len:expr, $mul:expr) ($($x:tt)*) $($rest:tt)*) => {
+        fomat!(@cap ($len, 2) $($rest)*)
+    };
+    (@cap ($len:expr, $mul:expr) [$($x:tt)*] $($rest:tt)*) => {
+        fomat!(@cap ($len, 2) $($rest)*)
+    };
+    (@cap ($len:expr, $mul:expr) {$($x:tt)*} $($rest:tt)*) => {
+        fomat!(@cap ($len, 2) $($rest)*)
+    };
+
+    // Now the only legal tt is a string literal
+    (@cap ($len:expr, $mul:expr) $string:tt $($rest:tt)*) => {
+        // Concat forces the token to be a string literal.
+        fomat!(@cap ($len + concat!($string).len(), $mul) $($rest)*)
+    };
+
+    // Ignores everything till after next block
+    (@cap-ignore ($($lm:tt)*) { $($block:tt)* } $($rest:tt)*) => {
+        fomat!(@cap ($($lm)*) $($rest)*)
+    };
+    (@cap-ignore ($($lm:tt)*) $tt:tt $($rest:tt)*) => {
+        fomat!(@cap-ignore ($($lm)*) $($rest)*)
+    };
+
+    // entry points ------------------------------------------------------------
     () => { String::new() };
     ($($arg:tt)*) => {
         {
             use ::std::fmt::Write;
-            let mut _s = String::new(); // TODO with capacity
-            swrite!(&mut _s, $($arg)*).ok();
+            let mut _s = String::with_capacity( fomat!(@cap (0, 1) $($arg)*) );
+            wite!(&mut _s, $($arg)*).ok();
             _s
         }
     }
@@ -207,34 +256,34 @@ macro_rules! sformat {
 #[test]
 fn basics() {
     let world = "World";
-    assert_eq!(sformat!("Hello, "(world)"!"), "Hello, World!");
+    assert_eq!(fomat!("Hello, "(world)"!"), "Hello, World!");
     let x = 3;
-    assert_eq!(sformat!((x)" * 2 = "(x * 2)), "3 * 2 = 6");
+    assert_eq!(fomat!((x)" * 2 = "(x * 2)), "3 * 2 = 6");
 }
 
 #[test]
 fn empty() {
-    assert_eq!(sformat!(), "");
+    assert_eq!(fomat!(), "");
 }
 
 #[test]
 fn vec() {
     let v = vec![1,2,3];
-    assert_eq!(sformat!([v]), "[1, 2, 3]");
+    assert_eq!(fomat!([v]), "[1, 2, 3]");
 }
 
 #[test]
 fn write() {
     use std::io::Write;
     let mut v = Vec::new();
-    swriteln!(&mut v, "hi" "!").unwrap();
+    witeln!(&mut v, "hi" "!").unwrap();
     assert_eq!(v, "hi!\n".as_bytes());
 }
 
 #[test]
 fn format() {
-    assert_eq!( sformat!({5:02}), "05" );
-    assert_eq!( sformat!({"{}-{}", 4, 2}), "4-2" );
+    assert_eq!( fomat!({5:02}), "05" );
+    assert_eq!( fomat!({"{}-{}", 4, 2}), "4-2" );
 }
 
 #[test]
@@ -242,16 +291,16 @@ fn hello() {
     let foo = "foo";
     let x = 2;
     let y = 4;
-    sprintln!("Bar "(foo)" and "(x));
-    sprintln!( (x)" < "(y) );
-    sprintln!( for x in (&[1,2,3]) { (x)" :: " } "nil" );
+    pintln!("Bar "(foo)" and "(x));
+    pintln!( (x)" < "(y) );
+    pintln!( for x in (&[1,2,3]) { (x)" :: " } "nil" );
 }
 
 #[test]
 fn matrix() {
     let matrix = vec![vec![0]];
     assert_eq!(
-        sformat!( for row in &matrix { for x in row { {x:3} } "\n" } ),
+        fomat!( for row in &matrix { for x in row { {x:3} } "\n" } ),
         "  0\n"
     );
 }
@@ -259,12 +308,12 @@ fn matrix() {
 #[test]
 fn boo() {
     let a = Some(5);
-    sprintln!(if let Some(_) = a { "yes" });
+    pintln!(if let Some(_) = a { "yes" });
 }
 
 #[test]
 fn test_match() {
-    let s = sformat!(
+    let s = fomat!(
         match Some(5) {
             Some(x) if x > 3 => { (x) }
             Some(2) | None => {}
@@ -273,4 +322,19 @@ fn test_match() {
         "."
     );
     assert_eq!(s, "5.");
+}
+
+#[test]
+fn capacity() {
+    assert_eq!(fomat!("Hello, " "world!").capacity(), 13);
+    assert_eq!(fomat!("Hello, "[40+2]).capacity(), 14);
+    let s = fomat!(
+        "Hello"
+        for x in [1][1..].iter() { (x) "a" }
+        if let Some(()) = None { "b" }
+        if false { "c" } else {}
+        match 1 { 2 => { "e" } _ => {} }
+        "!"
+    );
+    assert_eq!(s.capacity(), 6);
 }

@@ -1,6 +1,15 @@
 [package]
-name = "sprint"
+name = "pint-macros"
 version = "0.1.0"
 authors = ["Michał Krasnoborski <mkrdln@gmail.com>"]
+
+description = "Alternative syntax for print/write/format-like macros with a small templating language"
+
+documentation = "https://docs.rs/pint-macros"
+homepage = "https://github.com/krdln/pint-macros"
+repository = "https://github.com/krdln/pint-macros"
+readme = "README.md"
+keywords = ["macro", "print", "template", "format", "interpolation"]
+license = "MIT"
 
 [dependencies]
