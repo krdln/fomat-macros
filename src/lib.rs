@@ -146,6 +146,17 @@ macro_rules! wite {
         wite!(@expr $w { if } () $($tt)*)
     };
 
+    // equal-sign debugging
+    (@rec $w:ident, (= $e:expr) $($rest:tt)*) => {
+        wite!(@rec $w, (concat!(stringify!($e), " = ")) ($e) $($rest)*)
+    };
+    (@rec $w:ident, [= $e:expr] $($rest:tt)*) => {
+        wite!(@rec $w, (concat!(stringify!($e), " = ")) [$e] $($rest)*)
+    };
+    (@rec $w:ident, {= $e:tt : $($fmt:tt)*} $($rest:tt)*) => {
+        wite!(@rec $w, (concat!(stringify!($e), " = ")) {$e : $($fmt)*} $($rest)*)
+    };
+
     // single tt
     (@rec $w:ident, $part:tt $($rest:tt)*) => {
         {
@@ -384,4 +395,13 @@ fn fmt_write() {
     }
 
     assert_eq!(format!("{}", Foo), "foo42");
+}
+
+#[test]
+fn equal_sign() {
+    let x = 5;
+    let v = vec![10];
+    assert_eq!(fomat!((=x) "."), "x = 5.");
+    assert_eq!(fomat!([=&v] "."), "&v = [10].");
+    assert_eq!(fomat!({=13:05b} "."), "13 = 01101.");
 }
