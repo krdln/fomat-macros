@@ -67,11 +67,14 @@ macro_rules! wite {
     };
 
     // expression parsing (manually, because we can't use :expr before `{`)
-    (@expr $w:ident {$($before:tt)*} ($($e:tt)*) {$($block:tt)*} $($rest:tt)* ) => {
+    (@expr.. $w:ident {$($before:tt)*} ($($e:tt)*) {$($block:tt)*} $($rest:tt)* ) => {
         wite!(@rec $w, $($before)* ($($e)*) {$($block)*} $($rest)*)
     };
+    (@expr.. $w:ident {$($before:tt)*} ($($expr:tt)*) $tt:tt $($rest:tt)* ) => {
+        wite!(@expr.. $w {$($before)*} ($($expr)* $tt) $($rest)*)
+    };
     (@expr $w:ident {$($before:tt)*} ($($expr:tt)*) $tt:tt $($rest:tt)* ) => {
-        wite!(@expr $w {$($before)*} ($($expr)* $tt) $($rest)*)
+        wite!(@expr.. $w {$($before)*} ($($expr)* $tt) $($rest)*)
     };
 
     // recursive parsing -------------------------------------------------------
@@ -476,17 +479,26 @@ fn empty() {
 }
 
 #[test]
-fn vec() {
+fn debug() {
     let v = vec![1,2,3];
-    assert_eq!(fomat!([v]), "[1, 2, 3]");
+    assert_eq!(fomat!([v] "."), "[1, 2, 3].");
 }
 
 #[test]
-fn write() {
-    use std::io::Write;
-    let mut v = Vec::new();
-    witeln!(&mut v, "hi" "!").unwrap();
-    assert_eq!(v, "hi!\n".as_bytes());
+fn test_if() {
+    let s = fomat!(
+        if true { "A" "A" } else { "X" }
+        if false { "X" } else { "D" "D" }
+        if true { "T" "T" }
+        if false { "X" }
+        if let Some(x) = Some(5) { (x) (x) } else { "E" "E" }
+        if let None = Some(5) { "X" } else { "F" "F" }
+        if let Some(x) = Some(5) { (x) }
+        if let None = Some(5) { "X" }
+        if {let t = true; t} { "K" }
+        "."
+    );
+    assert_eq!(s, "AADDTT55FF5K.");
 }
 
 #[test]
@@ -496,21 +508,11 @@ fn format() {
 }
 
 #[test]
-fn hello() {
-    let foo = "foo";
-    let x = 2;
-    let y = 4;
-    pintln!("Bar "(foo)" and "(x));
-    pintln!( (x)" < "(y) );
-    pintln!( for x in (&[1,2,3]) { (x)" :: " } "nil" );
-}
-
-#[test]
 fn matrix() {
-    let matrix = vec![vec![0]];
+    let matrix = vec![vec![0], vec![1]];
     assert_eq!(
         fomat!( for row in &matrix { for x in row { {x:3} } "\n" } ),
-        "  0\n"
+        "  0\n  1\n"
     );
 }
 
@@ -521,12 +523,6 @@ fn separator() {
     let s2 = fomat!( for x in &v { (x) } sep { "--" } "." );
     assert_eq!(s1, "1--2--3.");
     assert_eq!(s2, "1--2--3.");
-}
-
-#[test]
-fn boo() {
-    let a = Some(5);
-    pintln!(if let Some(_) = a { "yes" });
 }
 
 #[test]
