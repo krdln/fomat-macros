@@ -76,13 +76,33 @@ macro_rules! wite {
 
     // recursive parsing -------------------------------------------------------
     // for
-    (@rec $w:ident, for $p:pat in ($e:expr) { $($body:tt)* } $($rest:tt)* ) => {
+    (@rec $w:ident,
+        for $p:pat in ($e:expr) { $($body:tt)* }
+        sep { $($sep:tt)* }
+        $($rest:tt)*
+    ) => {
         {
+            let mut first_iteration = true;
             for $p in $e {
+                if first_iteration {
+                    first_iteration = false;
+                } else {
+                    wite!(@rec $w, $($sep)*);
+                }
                 wite!(@rec $w, $($body)*);
             }
             wite!(@rec $w, $($rest)*);
         }
+    };
+    (@rec $w:ident,
+        for $p:pat in ($e:expr) { $($body:tt)* }
+        separated { $($sep:tt)* }
+        $($rest:tt)*
+    ) => {
+        wite!(@rec $w, for $p in ($e) { $($body)* } sep { $($sep)* }$($rest)*)
+    };
+    (@rec $w:ident, for $p:pat in ($e:expr) { $($body:tt)* } $($rest:tt)*) => {
+        wite!(@rec $w, for $p in ($e) { $($body)* } sep {} $($rest)*)
     };
     (@rec $w:ident, for $p:pat in $($tt:tt)* ) => {
         wite!(@expr $w { for $p in } () $($tt)*)
@@ -383,6 +403,12 @@ macro_rules! fomat {
     (@cap ($($lm:tt)*) for $p:pat in $($tt:tt)*) => {
         fomat!(@cap-ignore ($($lm)*) $($tt)*)
     };
+    (@cap ($($lm:tt)*) sep $($tt:tt)*) => {
+        fomat!(@cap-ignore ($($lm)*) $($tt)*)
+    };
+    (@cap ($($lm:tt)*) separated $($tt:tt)*) => {
+        fomat!(@cap-ignore ($($lm)*) $($tt)*)
+    };
     (@cap ($($lm:tt)*) if let $p:pat = $($tt:tt)*) => {
         fomat!(@cap-ignore ($($lm)*) $($tt)*)
     };
@@ -486,6 +512,15 @@ fn matrix() {
         fomat!( for row in &matrix { for x in row { {x:3} } "\n" } ),
         "  0\n"
     );
+}
+
+#[test]
+fn separator() {
+    let v = vec![1, 2, 3];
+    let s1 = fomat!( for x in &v { (x) } separated { "-" "-" } "." );
+    let s2 = fomat!( for x in &v { (x) } sep { "--" } "." );
+    assert_eq!(s1, "1--2--3.");
+    assert_eq!(s2, "1--2--3.");
 }
 
 #[test]
