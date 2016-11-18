@@ -37,7 +37,7 @@ impl<W: io::Write> WriteStrExt for W {
 /// # Examples
 ///
 /// ```
-/// # #[macro_use] extern crate pint_macros;
+/// # #[macro_use] extern crate fomat_macros;
 /// # fn main() {
 /// use ::std::io::Write;
 /// let mut v = vec![];
@@ -112,8 +112,7 @@ macro_rules! wite {
     };
 
     // match
-    (
-        @rec $w:ident,
+    (@rec $w:ident,
         match ($e:expr) {
             $( $($p:pat)|+ $(if $g:expr)* => { $($body:tt)* } )*
         }
@@ -135,8 +134,7 @@ macro_rules! wite {
     };
 
     // if let
-    (
-        @rec $w:ident,
+    (@rec $w:ident,
         if let $p:pat = ($e:expr) { $($then:tt)* }
         else { $($els:tt)* }
         $($rest:tt)*
@@ -150,15 +148,13 @@ macro_rules! wite {
             wite!(@rec $w, $($rest)*);
         }
     };
-    (
-        @rec $w:ident,
+    (@rec $w:ident,
         if let $p:pat = ($e:expr) { $($then:tt)* }
         else if $($rest:tt)*
     ) => {
         wite!(@ifelseerror)
     };
-    (
-        @rec $w:ident,
+    (@rec $w:ident,
         if let $p:pat = ($e:expr) { $($then:tt)* }
         $($rest:tt)*
     ) => {
@@ -169,8 +165,7 @@ macro_rules! wite {
     };
 
     // if
-    (
-        @rec $w:ident,
+    (@rec $w:ident,
         if ($cond:expr) { $($then:tt)* }
         else { $($els:tt)* }
         $($rest:tt)*
@@ -184,8 +179,7 @@ macro_rules! wite {
             wite!(@rec $w, $($rest)*);
         }
     };
-    (
-        @rec $w:ident,
+    (@rec $w:ident,
         if ($cont:expr) { $($then:tt)* }
         else if $($rest:tt)*
     ) => {
@@ -257,7 +251,7 @@ macro_rules! wite {
 /// # Examples
 ///
 /// ```no_run
-/// # #[macro_use] extern crate pint_macros;
+/// # #[macro_use] extern crate fomat_macros;
 /// # fn main() {
 /// # use ::std::io::Write;
 /// # let mut file = vec![];
@@ -286,7 +280,7 @@ macro_rules! witeln {
 /// # Examples
 ///
 /// ```no_run
-/// # #[macro_use] extern crate pint_macros;
+/// # #[macro_use] extern crate fomat_macros;
 /// # fn main() {
 /// pint!("four = "(2+2));
 /// # }
@@ -309,7 +303,7 @@ macro_rules! pint {
 /// # Examples
 ///
 /// ```no_run
-/// # #[macro_use] extern crate pint_macros;
+/// # #[macro_use] extern crate fomat_macros;
 /// # fn main() {
 /// pintln!();
 /// pintln!((2 * 2));
@@ -336,7 +330,7 @@ macro_rules! pintln {
 /// # Examples
 ///
 /// ```no_run
-/// # #[macro_use] extern crate pint_macros;
+/// # #[macro_use] extern crate fomat_macros;
 /// # fn main() {
 /// perr!("foo")
 /// # }
@@ -359,7 +353,7 @@ macro_rules! perr {
 /// # Examples
 ///
 /// ```no_run
-/// # #[macro_use] extern crate pint_macros;
+/// # #[macro_use] extern crate fomat_macros;
 /// # fn main() {
 /// let x = 3;
 /// perrln!((=x));
@@ -384,7 +378,7 @@ macro_rules! perrln {
 /// # Examples
 ///
 /// ```
-/// # #[macro_use] extern crate pint_macros;
+/// # #[macro_use] extern crate fomat_macros;
 /// # fn main() {
 /// let v = vec![1, 2];
 ///
@@ -529,13 +523,13 @@ fn separator() {
 fn test_match() {
     let s = fomat!(
         match Some(5) {
-            Some(x) if x > 3 => { (x) }
+            Some(x) if x > 3 => { (x) "!" }
             Some(2) | None => {}
             _ => {}
         }
         "."
     );
-    assert_eq!(s, "5.");
+    assert_eq!(s, "5!.");
 }
 
 #[test]

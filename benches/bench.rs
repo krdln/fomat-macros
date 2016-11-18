@@ -2,7 +2,7 @@
 
 extern crate test;
 
-#[macro_use] extern crate pint_macros;
+#[macro_use] extern crate fomat_macros;
 
 use test::{Bencher, black_box};
 

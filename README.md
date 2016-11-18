@@ -1,7 +1,7 @@
-# pint-macros
+# fomat-macros
 
-[**documentation**](https://docs.rs/pint-macros),
-[**crate**](https://crates.io/crates/pint-macros)
+[**documentation**](https://docs.rs/fomat-macros),
+[**crate**](https://crates.io/crates/fomat-macros)
 
 This crate provides alternative syntax for
 `write!`, `writeln!`, `print!`, `println!` and `format!` macros
@@ -19,13 +19,13 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-pint-macros = "0.1"
+fomat-macros = "0.1"
 ```
 
 And import the macros in your `.rs` file:
 
 ```rust
-#[macro_use] extern crate pint_macros;
+#[macro_use] extern crate fomat_macros;
 ```
 
 ## Examples
