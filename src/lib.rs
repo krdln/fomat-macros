@@ -17,6 +17,35 @@ impl<W: io::Write> WriteStrExt for W {
     }
 }
 
+/// Writes to a specified writer. Analogous to `write!`.
+///
+/// See the crate root for general help on the syntax.
+///
+/// The first argument should be something that implements either `io::Write`
+/// or `fmt::Write`. This expression will be evaluated once.
+/// The writer can't be a variable name, you have to add `&mut` explicitly,
+/// as if you'd be calling a function.
+///
+/// The list of things to write should be written after
+/// the first comma, without any further delimiters.
+///
+/// # Return value
+///
+/// This macro returns `io::Result<()>` or `fmt::Result`,
+/// just as `write!` from `std`.
+///
+/// # Examples
+///
+/// ```
+/// # #[macro_use] extern crate pint_macros;
+/// # fn main() {
+/// use ::std::io::Write;
+/// let mut v = vec![];
+/// let world = "World";
+/// wite!(&mut v, "Hello, "(world)"!").unwrap();
+/// assert_eq!(v, "Hello, World!".as_bytes());
+/// # }
+/// ```
 #[macro_export]
 macro_rules! wite {
     // single tt rules ---------------------------------------------------------
@@ -196,11 +225,49 @@ macro_rules! wite {
     };
 }
 
+/// Writes to a specified writer, with an appended newline. Analogous to `writeln!`.
+///
+/// See the documentation for [`wite!`](macro.wite.html).
+///
+/// When there are no arguments, the comma may be omitted.
+///
+/// # Examples
+///
+/// ```no_run
+/// # #[macro_use] extern crate pint_macros;
+/// # fn main() {
+/// # use ::std::io::Write;
+/// # let mut file = vec![];
+/// witeln!(&mut file).unwrap();
+/// witeln!(&mut file, "Hi").unwrap();
+/// # }
+/// ```
 #[macro_export]
 macro_rules! witeln {
-    ($($arg:tt)*) => { wite!($($arg)* "\n") }
+    ($writer:expr, $($arg:tt)*) => { wite!($writer, $($arg)* "\n") };
+    ($writer:expr) => { wite!($writer, "\n") };
 }
 
+/// Prints to stdout. Analogous to `print!`.
+///
+/// See the crate root for general help on the syntax.
+///
+/// # Return value
+///
+/// The macro returns `()`.
+///
+/// # Panics
+///
+/// The macro panics when printing was not successful.
+///
+/// # Examples
+///
+/// ```no_run
+/// # #[macro_use] extern crate pint_macros;
+/// # fn main() {
+/// pint!("four = "(2+2));
+/// # }
+/// ```
 #[macro_export]
 macro_rules! pint {
     ($($arg:tt)*) => {
@@ -212,11 +279,45 @@ macro_rules! pint {
     }
 }
 
+/// Prints to stdout, with an appended newline. Analoguous to `println!`.
+///
+/// See the docs for [`print!`](macro.pint.html) for more details.
+///
+/// # Examples
+///
+/// ```no_run
+/// # #[macro_use] extern crate pint_macros;
+/// # fn main() {
+/// pintln!();
+/// pintln!((2 * 2));
+/// # }
+/// ```
 #[macro_export]
 macro_rules! pintln {
     ($($arg:tt)*) => { pint!($($arg)* "\n") }
 }
 
+/// Prints to stderr.
+///
+/// See the crate root for general help on the syntax.
+///
+/// # Return value
+///
+/// None
+///
+/// # Panics
+///
+/// This macro, in contrary to `pint!`, silently ignores
+/// all errors.
+///
+/// # Examples
+///
+/// ```no_run
+/// # #[macro_use] extern crate pint_macros;
+/// # fn main() {
+/// perr!("foo")
+/// # }
+/// ```
 #[macro_export]
 macro_rules! perr {
     ($($arg:tt)*) => {
@@ -228,11 +329,49 @@ macro_rules! perr {
     }
 }
 
+/// Prints to stderr, with an appended newline.
+///
+/// See the docs for [`perr!`](macro.perr.html) for more info.
+///
+/// # Examples
+///
+/// ```no_run
+/// # #[macro_use] extern crate pint_macros;
+/// # fn main() {
+/// let x = 3;
+/// perrln!((=x));
+/// # }
+/// ```
 #[macro_export]
 macro_rules! perrln {
     ($($arg:tt)*) => { perr!($($arg)* "\n") }
 }
 
+/// Creates a formatted string. Analogous to `format!`.
+///
+/// See the crate root for general help on the syntax.
+///
+/// This macro returns `String` containing the formatted text.
+///
+/// # Panics
+///
+/// The macro will panic if formatting fails (which shoudn't happen for any
+/// of `std` types).
+///
+/// # Examples
+///
+/// ```
+/// # #[macro_use] extern crate pint_macros;
+/// # fn main() {
+/// let v = vec![1, 2];
+///
+/// let s = fomat!("Hello, "[v]);
+/// assert_eq!(s, "Hello, [1, 2]");
+///
+/// let s = fomat!(for x in &v { (x*x) ";" });
+/// assert_eq!(s, "1;4;");
+/// # }
+/// ```
 #[macro_export]
 macro_rules! fomat {
     // capacity estimation -----------------------------------------------------
