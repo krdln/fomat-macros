@@ -50,13 +50,6 @@ everything inside the `{}` blocks will use the
 list-of-things-to-print syntax again.
 
 ```rust
-let x = 15;
-let y = 3;
-pintln!("The number is " (x) 
-        if x % y == 0 { " and it's divisible by " (y) });
-```
-
-```rust
 let list = vec![1, 2, 3];
 let s = fomat!( for x in &list { (x) " :: " } "nil" );
 // s == "1 :: 2 :: 3 :: nil"
@@ -79,7 +72,7 @@ perrln!([=list]); // prints list = [1, 2, 3]
 What was the motivation to create this crate?
 
 * More locality – everything is written in the same order
-  it will be printed. But that's might a personal preference.
+  it will be printed. But that might a personal preference.
 * Easier to refactor – especially when you suddenly want
   to add a conditional print inside a long format string. Compare:
 
