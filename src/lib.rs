@@ -1,3 +1,269 @@
+//! This crate provides alternative syntax for
+//! `write!`, `writeln!`, `print!`, `println!` and `format!` macros.
+//! It also introduces macros to print on `stderr`.
+//!
+//! The names of macros in this crate are formed by
+//! removing the letter `r` from their `std` counterparts.
+//!
+//! Index: [**examples**](#examples);
+//! [**syntax**](#syntax-overview):
+//! [`"string"`](#string-literals),
+//! [`()`, `[]`](#expressions-in--and--brackets),
+//! [`{}`](#curly-braces),
+//! [`for`](#for-loops),
+//! [`if`](#if-and-if-let),
+//! [`match`](#match),
+//! [`=`](#debugging-shorthand);
+//! [**troubleshooting**](#troubleshooting);
+//! [**macros**](#macros)
+//!
+//! # Examples
+//!
+//! ```
+//! #[macro_use] extern crate fomat_macros;
+//!
+//! fn main() {
+//!     pintln!("Hello, World!");
+//!     pintln!("Display trait: "(2+2));
+//!     pintln!("Debug trait: "[vec![1, 2, 3]]);
+//!     pintln!("Multiple " "parameters" (1) " " [2]);
+//!
+//!     pintln!("Formatting parameters: " {(1./3.):5.2}); // 0.333
+//!     pintln!("Debug: "[= 2 + 2]); // Debug: 2 + 2 = 4
+//! }
+//! ```
+//!
+//! This crate also contains a small templating language,
+//! allowing you to mix constructs like `for` with
+//! the printing syntax. The following should print `1 :: 2 :: 3 :: nil`.
+//!
+//! ```no_run
+//! # #[macro_use] extern crate fomat_macros;
+//! # fn main() {
+//! let list = [1, 2, 3];
+//! pintln!( for x in &list { (x) " :: " } "nil" );
+//! # }
+//! ```
+//!
+//! # Syntax overview
+//!
+//! All the macros share the same syntax, so
+//! it will be described in this section.
+//!
+//! The macros take list of *things* to print as an argument.
+//! Each *thing* could be either a string literal, something
+//! inside brackets (`()`, `[]` or `{}`) or a Rust construct
+//! (`for`, `if let`, `if` or `match`). There has to be
+//! no separator (like a comma) between those *things*.
+//!
+//! Whitespace is ignored outside the string literals.
+//!
+//! ## String literals
+//!
+//! String literals will be formatted directly as they are.
+//! Note that this also applies to `{` and `}` characters.
+//!
+//! ```
+//! # #[macro_use] extern crate fomat_macros;
+//! # fn main() {
+//! let s = fomat!("Hi." "{}");
+//! assert_eq!(s, "Hi.{}");
+//! # }
+//! ```
+//!
+//! ## Expressions in `()` and `[]` brackets.
+//!
+//! Expressions in these brackets will be evaluated and
+//! printed using:
+//!
+//! * `Display` trait for `(expr)` (equivalent to `{}` format).
+//! * `Debug` trait for `[expr]` (equivalent to `{:?}` format).
+//!
+//! Like in `std`, they are implicitly borrowed.
+//!
+//! ```
+//! # #[macro_use] extern crate fomat_macros;
+//! # fn main() {
+//! let s = fomat!( ("string") (2 + 2) ", " [vec![1]] );
+//! assert_eq!(s, "string4, [1]")
+//! # }
+//! ```
+//!
+//! ## Curly braces
+//!
+//! ### `write!` passthrough
+//!
+//! If you want to use regular `format!` syntax for some
+//! part of your string, place `format!` arguments
+//! inside the curly braces:
+//!
+//! ```
+//! # #[macro_use] extern crate fomat_macros;
+//! # fn main() {
+//! use std::io::Write;
+//!
+//! let mut v = vec![];
+//! wite!(&mut v, "foo " {"{} baz {}", "bar", "quux"});
+//! assert_eq!(v, "foo bar baz quux".as_bytes());
+//! # }
+//! ```
+//!
+//! ### Single argument
+//!
+//! If you only want to print a single argument
+//! with a custom format parameters,
+//! you can use the `{token_tree:format_parameters}`
+//! syntax.
+//!
+//! The following will use binary format,
+//! zero-aligned to 8 places.
+//!
+//! ```
+//! # #[macro_use] extern crate fomat_macros;
+//! # fn main() {
+//! let s = fomat!({13:08b});
+//! assert_eq!(s, "00001101");
+//! # }
+//! ```
+//!
+//! Please note that there can be only a single
+//! token tree before the colon – usually
+//! a literal or an identifier. Anything
+//! longer has to be wrapped in parentheses
+//! (like that `{(10+3):08b}`).
+//!
+//! ## For loops
+//!
+//! For loops use the regular Rust syntax,
+//! except the body
+//! will use this printing syntax again.
+//!
+//! ```
+//! # #[macro_use] extern crate fomat_macros;
+//! # fn main() {
+//! let list = [1, 2, 3];
+//! let s = fomat!( for x in &list { (x) " :: " } "nil" );
+//! assert_eq!(s, "1 :: 2 :: 3 :: nil");
+//! # }
+//! ```
+//!
+//! For loops can also use an optional separator,
+//! denoted by `sep` or `separated` keyword.
+//!
+//! ```
+//! # #[macro_use] extern crate fomat_macros;
+//! # fn main() {
+//! # let list = ["a", "b"];
+//! let s = fomat!(
+//!    for (i, x) in list.iter().enumerate() { (i) " → " (x) }
+//!    separated { ", " }
+//! );
+//! assert_eq!(s, "0 → a, 1 → b");
+//! # }
+//! ```
+//!
+//! For loops (and other syntax elements) can also be nested:
+//!
+//! ```
+//! # #[macro_use] extern crate fomat_macros;
+//! # fn main() {
+//! let matrix = [[0, 1], [2, 3]];
+//! assert_eq!(
+//!     fomat!( for row in &matrix { for x in row { {x:3} } "\n" } ),
+//!     "  0  1\n  2  3\n"
+//! );
+//! # }
+//! ```
+//!
+//! ## If and if let
+//!
+//! They use the regular Rust syntax,
+//! except of the body (inside `{}`),
+//! which uses the printing syntax.
+//!
+//! The benefits of using this syntax instead
+//! of getting `if` "outside" of the printing
+//! macros is apparent when the conditional is
+//! a part of a longer string (you don't
+//! have to split this into three separate `write!`s):
+//!
+//! ```
+//! # #[macro_use] extern crate fomat_macros;
+//! # fn main() {
+//! let opt = Some(5);
+//! let s = fomat!(
+//!     "a\n"
+//!     if let Some(x) = opt { (x) "\n" } else { "nothing\n" }
+//!     "b\n"
+//! );
+//! assert_eq!(s, "a\n5\nb\n");
+//! # }
+//! ```
+//!
+//! The `else` clause is optional.
+//!
+//! `else if`-chaining is not supported. As a workaround,
+//! use `else { if ... }` or `match`.
+//!
+//! ## Match
+//!
+//! Match uses the regular Rust syntax,
+//! except arms has to use `{}` blocks,
+//! which will be interpreted using printing syntax.
+//!
+//! ```
+//! # #[macro_use] extern crate fomat_macros;
+//! # fn main() {
+//! let v = [Some(1), None, Some(2)];
+//! let s = fomat!(
+//!     for x in &v {
+//!         match *x {
+//!             Some(x) => { (x) }
+//!             None => { "_" }
+//!         }
+//!     }
+//! );
+//! assert_eq!(s, "1_2");
+//! # }
+//! ```
+//!
+//! Match arms should not be separated by commas.
+//!
+//! ## Debugging shorthand
+//!
+//! If you want to print both the expression and the value,
+//! place equal sign as a first character in brackets.
+//! The trait used to print the value will depend on
+//! the kind of brackets used.
+//!
+//! ```
+//! # #[macro_use] extern crate fomat_macros;
+//! # fn main() {
+//! let word = "foo";
+//! let arr = [10];
+//! let s = fomat!( (=word) ", " [=&arr] ", " {=5:#b} );
+//! assert_eq!(s, "word = foo, &arr = [10], 5 = 0b101");
+//! # }
+//! ```
+//!
+//! # Troubleshooting
+//!
+//! ## Recursion depth
+//!
+//! If you hit the error about recursion depth,
+//! which occurs when you try to print more than
+//! about 50 elements, you can use this workaround
+//! instead of increasing the limit: split everything
+//! into two (or more) dummy `if true` blocks.
+//!
+//! ## Errors in macro parsing
+//!
+//! If you hit `expected a literal`, that either means
+//! either you've made a syntactic mistake
+//! or really a string literal is expected here.
+//! Remember, naked identifiers won't be printed
+//! unless you put them in parentheses.
+
 use std::io;
 
 #[doc(hidden)]
@@ -222,7 +488,7 @@ macro_rules! wite {
 
     (@ifelseerror) => {
         {
-            let ERROR: () = "`else if` is unsupported";
+            let ERROR: () = "`else if` is not supported";
             let NOTE: () = "use `match` or `else { if ... }` instead";
         }
     };
@@ -383,7 +649,7 @@ macro_rules! perrln {
 /// ```
 /// # #[macro_use] extern crate fomat_macros;
 /// # fn main() {
-/// let v = vec![1, 2];
+/// let v = [1, 2];
 ///
 /// let s = fomat!("Hello, "[v]);
 /// assert_eq!(s, "Hello, [1, 2]");
@@ -477,7 +743,7 @@ fn empty() {
 
 #[test]
 fn debug() {
-    let v = vec![1,2,3];
+    let v = [1,2,3];
     assert_eq!(fomat!([v] "."), "[1, 2, 3].");
 }
 
@@ -505,17 +771,8 @@ fn format() {
 }
 
 #[test]
-fn matrix() {
-    let matrix = vec![vec![0], vec![1]];
-    assert_eq!(
-        fomat!( for row in &matrix { for x in row { {x:3} } "\n" } ),
-        "  0\n  1\n"
-    );
-}
-
-#[test]
 fn separator() {
-    let v = vec![1, 2, 3];
+    let v = [1, 2, 3];
     let s1 = fomat!( for x in &v { (x) } separated { "-" "-" } "." );
     let s2 = fomat!( for x in &v { (x) } sep { "--" } "." );
     assert_eq!(s1, "1--2--3.");
@@ -567,7 +824,7 @@ fn fmt_write() {
 #[test]
 fn equal_sign() {
     let x = 5;
-    let v = vec![10];
+    let v = [10];
     assert_eq!(fomat!((=x) "."), "x = 5.");
     assert_eq!(fomat!([=&v] "."), "&v = [10].");
     assert_eq!(fomat!({=13:05b} "."), "13 = 01101.");
