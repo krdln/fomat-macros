@@ -52,7 +52,7 @@ macro_rules! wite {
     (@one $w:ident, ($e:expr)) => { write!($w, "{}", $e) };
     (@one $w:ident, [$e:expr]) => { write!($w, "{:?}", $e) };
     (@one $w:ident, {$e:tt : $($fmt:tt)*}) => {
-        write!($w, concat!("{:", stringify!($($fmt)*), "}"), $e)
+        write!($w, concat!("{:", wite!(@stringify-dense $($fmt)*), "}"), $e)
     };
     (@one $w:ident, {$($arg:tt)*}) => {
         write!($w, $($arg)*)
@@ -65,6 +65,9 @@ macro_rules! wite {
             $w.write_str(concat!($string))
         }
     };
+
+    (@stringify-dense) => { "" };
+    (@stringify-dense $($tt:tt)+) => { concat!( $(stringify!($tt)),+ ) };
 
     // expression parsing (manually, because we can't use :expr before `{`)
     (@expr.. $w:ident {$($before:tt)*} ($($e:tt)*) {$($block:tt)*} $($rest:tt)* ) => {
