@@ -10,7 +10,7 @@ from the [Rust](https://www.rust-lang.org/) standard library.
 
 The names of macros in this crate
 are formed by removing the letter `r` from their `std` counterparts:
-`wite!`, `witeln!`, `pint!`, `pintln!`,
+`wrt!`, `wrtln!`, `prnt!`, `prntln!`,
 `perr!`, `perrln!`, `fomat!`.
 
 ## Installation
@@ -31,10 +31,10 @@ And import the macros in your `.rs` file:
 ## Examples
 
 ```rust
-pintln!("Hello, world!");
-pintln!(); // empty line
-pintln!("The answer is "(40 + 2)); // parentheses use the Display trait
-pintln!([vec![1, 2, 3]] " -- numbers"); // brackets use the Debug trait
+prntln!("Hello, world!");
+prntln!(); // empty line
+prntln!("The answer is "(40 + 2)); // parentheses use the Display trait
+prntln!([vec![1, 2, 3]] " -- numbers"); // brackets use the Debug trait
 ```
 
 As you can see, instead the format string and arguments,
@@ -109,9 +109,9 @@ the `.write_str` method. It works for any `io::Write` or
 `fmt::Write`, but in unlikely circumstances if you're using something
 custom, you should consult the source.
 
-The `wite!` and `witeln!` also require their argument not to be
+The `wrt!` and `wrtln!` also require their argument not to be
 a temporary expression. The main difference is that `write!` accepts
-a variable name as a first argument, while `wite!` requires
+a variable name as a first argument, while `wrt!` requires
 explicitly adding `&mut`.
 
 ## Is it a templating language?
