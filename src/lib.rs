@@ -23,13 +23,13 @@
 //! #[macro_use] extern crate fomat_macros;
 //!
 //! fn main() {
-//!     pintln!("Hello, World!");
-//!     pintln!("Display trait: "(2+2));
-//!     pintln!("Debug trait: "[vec![1, 2, 3]]);
-//!     pintln!("Multiple " "parameters" (1) " " [2]);
+//!     prntln!("Hello, World!");
+//!     prntln!("Display trait: "(2+2));
+//!     prntln!("Debug trait: "[vec![1, 2, 3]]);
+//!     prntln!("Multiple " "parameters" (1) " " [2]);
 //!
-//!     pintln!("Formatting parameters: " {(1./3.):5.2}); // 0.333
-//!     pintln!("Debug: "[= 2 + 2]); // Debug: 2 + 2 = 4
+//!     prntln!("Formatting parameters: " {(1./3.):5.2}); // 0.333
+//!     prntln!("Debug: "[= 2 + 2]); // Debug: 2 + 2 = 4
 //! }
 //! ```
 //!
@@ -41,7 +41,7 @@
 //! # #[macro_use] extern crate fomat_macros;
 //! # fn main() {
 //! let list = [1, 2, 3];
-//! pintln!( for x in &list { (x) " :: " } "nil" );
+//! prntln!( for x in &list { (x) " :: " } "nil" );
 //! # }
 //! ```
 //!
@@ -103,7 +103,7 @@
 //! use std::io::Write;
 //!
 //! let mut v = vec![];
-//! wite!(&mut v, "foo " {"{} baz {}", "bar", "quux"});
+//! wrt!(&mut v, "foo " {"{} baz {}", "bar", "quux"});
 //! assert_eq!(v, "foo bar baz quux".as_bytes());
 //! # }
 //! ```
@@ -308,17 +308,17 @@ impl<W: io::Write> WriteStrExt for W {
 /// use ::std::io::Write;
 /// let mut v = vec![];
 /// let world = "World";
-/// wite!(&mut v, "Hello, "(world)"!").unwrap();
+/// wrt!(&mut v, "Hello, "(world)"!").unwrap();
 /// assert_eq!(v, "Hello, World!".as_bytes());
 /// # }
 /// ```
 #[macro_export]
-macro_rules! wite {
+macro_rules! wrt {
     // single tt rules ---------------------------------------------------------
     (@one $w:ident, ($e:expr)) => { write!($w, "{}", $e) };
     (@one $w:ident, [$e:expr]) => { write!($w, "{:?}", $e) };
     (@one $w:ident, {$e:tt : $($fmt:tt)*}) => {
-        write!($w, concat!("{:", wite!(@stringify-dense $($fmt)*), "}"), $e)
+        write!($w, concat!("{:", wrt!(@stringify-dense $($fmt)*), "}"), $e)
     };
     (@one $w:ident, {$($arg:tt)*}) => {
         write!($w, $($arg)*)
@@ -337,13 +337,13 @@ macro_rules! wite {
 
     // expression parsing (manually, because we can't use :expr before `{`)
     (@expr.. $w:ident {$($before:tt)*} ($($e:tt)*) {$($block:tt)*} $($rest:tt)* ) => {
-        wite!(@rec $w, $($before)* ($($e)*) {$($block)*} $($rest)*)
+        wrt!(@rec $w, $($before)* ($($e)*) {$($block)*} $($rest)*)
     };
     (@expr.. $w:ident {$($before:tt)*} ($($expr:tt)*) $tt:tt $($rest:tt)* ) => {
-        wite!(@expr.. $w {$($before)*} ($($expr)* $tt) $($rest)*)
+        wrt!(@expr.. $w {$($before)*} ($($expr)* $tt) $($rest)*)
     };
     (@expr $w:ident {$($before:tt)*} ($($expr:tt)*) $tt:tt $($rest:tt)* ) => {
-        wite!(@expr.. $w {$($before)*} ($($expr)* $tt) $($rest)*)
+        wrt!(@expr.. $w {$($before)*} ($($expr)* $tt) $($rest)*)
     };
 
     // recursive parsing -------------------------------------------------------
@@ -359,11 +359,11 @@ macro_rules! wite {
                 if first_iteration {
                     first_iteration = false;
                 } else {
-                    wite!(@rec $w, $($sep)*);
+                    wrt!(@rec $w, $($sep)*);
                 }
-                wite!(@rec $w, $($body)*);
+                wrt!(@rec $w, $($body)*);
             }
-            wite!(@rec $w, $($rest)*);
+            wrt!(@rec $w, $($rest)*);
         }
     };
     (@rec $w:ident,
@@ -371,13 +371,13 @@ macro_rules! wite {
         separated { $($sep:tt)* }
         $($rest:tt)*
     ) => {
-        wite!(@rec $w, for $p in ($e) { $($body)* } sep { $($sep)* }$($rest)*)
+        wrt!(@rec $w, for $p in ($e) { $($body)* } sep { $($sep)* }$($rest)*)
     };
     (@rec $w:ident, for $p:pat in ($e:expr) { $($body:tt)* } $($rest:tt)*) => {
-        wite!(@rec $w, for $p in ($e) { $($body)* } sep {} $($rest)*)
+        wrt!(@rec $w, for $p in ($e) { $($body)* } sep {} $($rest)*)
     };
     (@rec $w:ident, for $p:pat in $($tt:tt)* ) => {
-        wite!(@expr $w { for $p in } () $($tt)*)
+        wrt!(@expr $w { for $p in } () $($tt)*)
     };
 
     // match
@@ -391,15 +391,15 @@ macro_rules! wite {
             match $e {
                 $(
                     $($p)|+ $(if $g)* => {
-                        wite!(@rec $w, $($body)*)
+                        wrt!(@rec $w, $($body)*)
                     }
                 )*
             }
-            wite!(@rec $w, $($rest)*);
+            wrt!(@rec $w, $($rest)*);
         }
     };
     (@rec $w:ident, match $($tt:tt)* ) => {
-        wite!(@expr $w { match } () $($tt)*)
+        wrt!(@expr $w { match } () $($tt)*)
     };
 
     // if let
@@ -410,27 +410,27 @@ macro_rules! wite {
     ) => {
         {
             if let $p = $e {
-                wite!(@rec $w, $($then)*);
+                wrt!(@rec $w, $($then)*);
             } else {
-                wite!(@rec $w, $($els)*);
+                wrt!(@rec $w, $($els)*);
             }
-            wite!(@rec $w, $($rest)*);
+            wrt!(@rec $w, $($rest)*);
         }
     };
     (@rec $w:ident,
         if let $p:pat = ($e:expr) { $($then:tt)* }
         else if $($rest:tt)*
     ) => {
-        wite!(@ifelseerror)
+        wrt!(@ifelseerror)
     };
     (@rec $w:ident,
         if let $p:pat = ($e:expr) { $($then:tt)* }
         $($rest:tt)*
     ) => {
-        wite!(@rec $w, if let $p = ($e) { $($then)* } else {} $($rest)*);
+        wrt!(@rec $w, if let $p = ($e) { $($then)* } else {} $($rest)*);
     };
     (@rec $w:ident, if let $p:pat = $($tt:tt)* ) => {
-        wite!(@expr $w { if let $p = } () $($tt)*)
+        wrt!(@expr $w { if let $p = } () $($tt)*)
     };
 
     // if
@@ -441,45 +441,45 @@ macro_rules! wite {
     ) => {
         {
             if $cond {
-                wite!(@rec $w, $($then)*);
+                wrt!(@rec $w, $($then)*);
             } else {
-                wite!(@rec $w, $($els)*);
+                wrt!(@rec $w, $($els)*);
             }
-            wite!(@rec $w, $($rest)*);
+            wrt!(@rec $w, $($rest)*);
         }
     };
     (@rec $w:ident,
         if ($cont:expr) { $($then:tt)* }
         else if $($rest:tt)*
     ) => {
-        wite!(@ifelseerror)
+        wrt!(@ifelseerror)
     };
     (@rec $w:ident, if ($cond:expr) { $($then:tt)* } $($rest:tt)* ) => {
-        wite!(@rec $w, if ($cond) { $($then)* } else {} $($rest)*);
+        wrt!(@rec $w, if ($cond) { $($then)* } else {} $($rest)*);
     };
     (@rec $w:ident, if $($tt:tt)* ) => {
-        wite!(@expr $w { if } () $($tt)*)
+        wrt!(@expr $w { if } () $($tt)*)
     };
 
     // equal-sign debugging
     (@rec $w:ident, (= $e:expr) $($rest:tt)*) => {
-        wite!(@rec $w, (concat!(stringify!($e), " = ")) ($e) $($rest)*)
+        wrt!(@rec $w, (concat!(stringify!($e), " = ")) ($e) $($rest)*)
     };
     (@rec $w:ident, [= $e:expr] $($rest:tt)*) => {
-        wite!(@rec $w, (concat!(stringify!($e), " = ")) [$e] $($rest)*)
+        wrt!(@rec $w, (concat!(stringify!($e), " = ")) [$e] $($rest)*)
     };
     (@rec $w:ident, {= $e:tt : $($fmt:tt)*} $($rest:tt)*) => {
-        wite!(@rec $w, (concat!(stringify!($e), " = ")) {$e : $($fmt)*} $($rest)*)
+        wrt!(@rec $w, (concat!(stringify!($e), " = ")) {$e : $($fmt)*} $($rest)*)
     };
 
     // single tt
     (@rec $w:ident, $part:tt $($rest:tt)*) => {
         {
-            match wite!(@one $w, $part) {
+            match wrt!(@one $w, $part) {
                 Ok(_) => (),
                 error => return error,
             }
-            wite!(@rec $w, $($rest)*);
+            wrt!(@rec $w, $($rest)*);
         }
     };
 
@@ -505,7 +505,7 @@ macro_rules! wite {
                 // doesn't have to be in scope.
                 let _ = write!(_w, "");
             }
-            wite!(@rec _w, $($part)*);
+            wrt!(@rec _w, $($part)*);
             Ok(())
         })()
     };
@@ -513,7 +513,7 @@ macro_rules! wite {
 
 /// Writes to a specified writer, with an appended newline. Analogous to `writeln!`.
 ///
-/// See the documentation for [`wite!`](macro.wite.html).
+/// See the documentation for [`wrt!`](macro.wrt.html).
 ///
 /// When there are no arguments, the comma may be omitted.
 ///
@@ -524,14 +524,14 @@ macro_rules! wite {
 /// # fn main() {
 /// # use ::std::io::Write;
 /// # let mut file = vec![];
-/// witeln!(&mut file).unwrap();
-/// witeln!(&mut file, "Hi").unwrap();
+/// wrtln!(&mut file).unwrap();
+/// wrtln!(&mut file, "Hi").unwrap();
 /// # }
 /// ```
 #[macro_export]
-macro_rules! witeln {
-    ($writer:expr, $($arg:tt)*) => { wite!($writer, $($arg)* "\n") };
-    ($writer:expr) => { wite!($writer, "\n") };
+macro_rules! wrtln {
+    ($writer:expr, $($arg:tt)*) => { wrt!($writer, $($arg)* "\n") };
+    ($writer:expr) => { wrt!($writer, "\n") };
 }
 
 /// Prints to stdout. Analogous to `print!`.
@@ -551,36 +551,36 @@ macro_rules! witeln {
 /// ```no_run
 /// # #[macro_use] extern crate fomat_macros;
 /// # fn main() {
-/// pint!("four = "(2+2));
+/// prnt!("four = "(2+2));
 /// # }
 /// ```
 #[macro_export]
-macro_rules! pint {
+macro_rules! prnt {
     ($($arg:tt)*) => {
         {
             use ::std::io::Write;
             let o = ::std::io::stdout();
-            wite!(o.lock(), $($arg)*).unwrap();
+            wrt!(o.lock(), $($arg)*).unwrap();
         }
     }
 }
 
 /// Prints to stdout, with an appended newline. Analoguous to `println!`.
 ///
-/// See the docs for [`print!`](macro.pint.html) for more details.
+/// See the docs for [`print!`](macro.prnt.html) for more details.
 ///
 /// # Examples
 ///
 /// ```no_run
 /// # #[macro_use] extern crate fomat_macros;
 /// # fn main() {
-/// pintln!();
-/// pintln!((2 * 2));
+/// prntln!();
+/// prntln!((2 * 2));
 /// # }
 /// ```
 #[macro_export]
-macro_rules! pintln {
-    ($($arg:tt)*) => { pint!($($arg)* "\n") }
+macro_rules! prntln {
+    ($($arg:tt)*) => { prnt!($($arg)* "\n") }
 }
 
 /// Prints to stderr.
@@ -593,7 +593,7 @@ macro_rules! pintln {
 ///
 /// # Panics
 ///
-/// This macro, in contrary to `pint!`, silently ignores
+/// This macro, in contrary to `prnt!`, silently ignores
 /// all errors.
 ///
 /// # Examples
@@ -610,7 +610,7 @@ macro_rules! perr {
         {
             use ::std::io::Write;
             let o = ::std::io::stderr();
-            wite!(o.lock(), $($arg)*).unwrap();
+            wrt!(o.lock(), $($arg)*).unwrap();
         }
     }
 }
@@ -722,7 +722,7 @@ macro_rules! fomat {
             use ::std::fmt::Write;
             let (len, mul) = fomat!(@cap (0, 1) $($arg)*);
             let mut _s = String::with_capacity(len * mul);
-            wite!(&mut _s, $($arg)*).ok();
+            wrt!(&mut _s, $($arg)*).ok();
             _s
         }
     }
@@ -814,7 +814,7 @@ fn fmt_write() {
 
     impl fmt::Display for Foo {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            wite!(f, "foo"(42))
+            wrt!(f, "foo"(42))
         }
     }
 
