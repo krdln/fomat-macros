@@ -19,7 +19,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-fomat-macros = "0.1"
+fomat-macros = "0.1.1"
 ```
 
 And import the macros in your `.rs` file:
@@ -108,11 +108,6 @@ has a `.write_fmt` method. This crate requires also
 the `.write_str` method. It works for any `io::Write` or
 `fmt::Write`, but in unlikely circumstances if you're using something
 custom, you should consult the source.
-
-The `wite!` and `witeln!` also require their argument not to be
-a temporary expression. The main difference is that `write!` accepts
-a variable name as a first argument, while `wite!` requires
-explicitly adding `&mut`.
 
 ## Is it a templating language?
 

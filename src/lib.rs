@@ -103,7 +103,7 @@
 //! use std::io::Write;
 //!
 //! let mut v = vec![];
-//! wite!(&mut v, "foo " {"{} baz {}", "bar", "quux"});
+//! wite!(v, "foo " {"{} baz {}", "bar", "quux"});
 //! assert_eq!(v, "foo bar baz quux".as_bytes());
 //! # }
 //! ```
@@ -283,14 +283,22 @@ impl<W: io::Write> WriteStrExt for W {
     }
 }
 
+#[doc(hidden)]
+/// Allows to get `&mut T` given either lvalue `T` or `&mut T`.
+pub trait IdentityMutExt {
+    fn identity_mut(&mut self) -> &mut Self {
+        self
+    }
+}
+
+impl<T> IdentityMutExt for T {}
+
 /// Writes to a specified writer. Analogous to `write!`.
 ///
 /// See the crate root for general help on the syntax.
 ///
 /// The first argument should be something that implements either `io::Write`
 /// or `fmt::Write`. This expression will be evaluated once.
-/// The writer can't be a variable name, you have to add `&mut` explicitly,
-/// as if you'd be calling a function.
 ///
 /// The list of things to write should be written after
 /// the first comma, without any further delimiters.
@@ -306,10 +314,12 @@ impl<W: io::Write> WriteStrExt for W {
 /// # #[macro_use] extern crate fomat_macros;
 /// # fn main() {
 /// use ::std::io::Write;
+/// use ::std::io::BufWriter;
 /// let mut v = vec![];
 /// let world = "World";
-/// wite!(&mut v, "Hello, "(world)"!").unwrap();
-/// assert_eq!(v, "Hello, World!".as_bytes());
+/// wite!(v, "Hello, "(world)"!").unwrap();
+/// wite!(BufWriter::new(&mut v), " "(2+2)).unwrap();
+/// assert_eq!(v, "Hello, World! 4".as_bytes());
 /// # }
 /// ```
 #[macro_export]
@@ -495,19 +505,24 @@ macro_rules! wite {
 
     // entry point -------------------------------------------------------------
     ($writer:expr, $($part:tt)*) => {
-        (||{
-            let mut _w = $writer;
-            if false {
-                // This dummy write's purpose is to silence a warning
-                // about "unused import `Write`". We can't just
-                // do `let _: Option<&Write> = None;` though, because
-                // in case when writing to Formatter, the `Write` trait
-                // doesn't have to be in scope.
-                let _ = write!(_w, "");
+        {
+            use $crate::IdentityMutExt;
+            // Using match instead of let to allow references to temporaries.
+            match $writer.identity_mut() {
+                _w => (||{
+                    if false {
+                        // This dummy write's purpose is to silence a warning
+                        // about "unused import `Write`". We can't just
+                        // do `let _: Option<&Write> = None;` though, because
+                        // in case when writing to Formatter, the `Write` trait
+                        // doesn't have to be in scope.
+                        let _ = write!(_w, "");
+                    }
+                    wite!(@rec _w, $($part)*);
+                    Ok(())
+                })()
             }
-            wite!(@rec _w, $($part)*);
-            Ok(())
-        })()
+        }
     };
 }
 
@@ -524,8 +539,8 @@ macro_rules! wite {
 /// # fn main() {
 /// # use ::std::io::Write;
 /// # let mut file = vec![];
-/// witeln!(&mut file).unwrap();
-/// witeln!(&mut file, "Hi").unwrap();
+/// witeln!(file).unwrap();
+/// witeln!(file, "Hi").unwrap();
 /// # }
 /// ```
 #[macro_export]
@@ -722,7 +737,7 @@ macro_rules! fomat {
             use ::std::fmt::Write;
             let (len, mul) = fomat!(@cap (0, 1) $($arg)*);
             let mut _s = String::with_capacity(len * mul);
-            wite!(&mut _s, $($arg)*).ok();
+            wite!(_s, $($arg)*).ok();
             _s
         }
     }
@@ -839,4 +854,39 @@ fn depth() {
         "1" "2" "3" "4" "5" "6" "7" "8" "9" "0"
         "1" "2" "3" "4" "5" "6" "7" "8" "9" "0"
     );
+}
+
+#[test]
+fn non_static_writer() {
+    use std::io::Write;
+    use std::io::Result;
+    use std::fmt::Arguments;
+    use WriteStrExt;
+
+    struct Prepender<'a, T: Write> {
+        prefix: &'a str,
+        writer: T,
+    }
+
+    impl<'a, T: Write> Write for Prepender<'a, T> {
+        fn write(&mut self, buf: &[u8]) -> Result<usize> {
+            self.writer.write(buf)
+        }
+
+        fn flush(&mut self) -> Result<()> {
+            self.writer.flush()
+        }
+
+        fn write_fmt(&mut self, fmt: Arguments) -> Result<()> {
+            self.writer.write_str(self.prefix)?;
+            self.writer.write_fmt(fmt)
+        }
+    }
+
+    let mut buf = vec![];
+    witeln!(
+        Prepender { prefix: &"foo ".to_owned(), writer: &mut buf },
+        (2+2)
+    ).unwrap();
+    assert_eq!(buf, "foo 4\n".as_bytes());
 }
