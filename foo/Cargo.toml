@@ -1,0 +1,10 @@
+[package]
+authors = ["Michał Krasnoborski <mkrdln@gmail.com>"]
+name = "foo"
+version = "0.1.0"
+
+[dependencies]
+
+[dependencies.fomat-macros]
+optional = false
+path = ".."

@@ -580,7 +580,15 @@ macro_rules! pint {
 /// ```
 #[macro_export]
 macro_rules! pintln {
-    ($($arg:tt)*) => { pint!($($arg)* "\n") }
+    ($($arg:tt)*) => {
+        #[cfg(test)] {
+            let s = fomat!($($arg)* "\n");
+            print!("{}", s)
+        }
+        #[cfg(not(test))] {
+            pint!($($arg)* "\n")
+        }
+    }
 }
 
 /// Prints to stderr.
