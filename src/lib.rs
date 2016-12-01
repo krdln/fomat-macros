@@ -561,6 +561,18 @@ macro_rules! witeln {
 ///
 /// The macro panics when printing was not successful.
 ///
+/// # Behaviour in `#[test]`
+///
+/// The behaviour when testing is similar to `print!`:
+/// the output of this macro will be captured by the
+/// testing framework (meaning that by default `cargo test`
+/// won't show the output).
+///
+/// The only limitation and difference from `print!` is
+/// that when `pint!` is called by a different crate
+/// than the one being tested, the output won't be captured
+/// and will allways be printed to stdout.
+///
 /// # Examples
 ///
 /// ```no_run
@@ -573,9 +585,14 @@ macro_rules! witeln {
 macro_rules! pint {
     ($($arg:tt)*) => {
         {
-            use ::std::io::Write;
-            let o = ::std::io::stdout();
-            wite!(o.lock(), $($arg)*).unwrap();
+            #[cfg(not(test))] {
+                use ::std::io::Write;
+                let o = ::std::io::stdout();
+                wite!(o.lock(), $($arg)*).unwrap();
+            }
+            #[cfg(test)] {
+                print!("{}", fomat!($($arg)*))
+            }
         }
     }
 }
@@ -595,7 +612,14 @@ macro_rules! pint {
 /// ```
 #[macro_export]
 macro_rules! pintln {
-    ($($arg:tt)*) => { pint!($($arg)* "\n") }
+    ($($arg:tt)*) => {
+        #[cfg(not(test))] {
+            pint!($($arg)* "\n")
+        }
+        #[cfg(test)] {
+            print!("{}", fomat!($($arg)* "\n"))
+        }
+    }
 }
 
 /// Prints to stderr.
