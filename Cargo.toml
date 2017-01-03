@@ -12,4 +12,6 @@ readme = "README.md"
 keywords = ["macro", "print", "template", "format", "interpolation"]
 license = "MIT"
 
-[dependencies]
+[dev-dependencies]
+tar = "0.4.9"
+tempdir = "0.3.5"
