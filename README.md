@@ -4,14 +4,14 @@
 [**crate**](https://crates.io/crates/fomat-macros)
 
 This crate provides alternative syntax for
-`write!`, `writeln!`, `print!`, `println!` and `format!` macros
+`write!`, `writeln!`, `print!`, `println!`, `epint!`, `epintln!` and `format!` macros
 from the [Rust](https://www.rust-lang.org/) standard library.
 (plus two macros for printing on `stderr`).
 
 The names of macros in this crate
 are formed by removing the letter `r` from their `std` counterparts:
 `wite!`, `witeln!`, `pint!`, `pintln!`,
-`perr!`, `perrln!`, `fomat!`.
+`epint!`, `epintln!`, `fomat!`.
 
 ## Installation
 
@@ -19,7 +19,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-fomat-macros = "0.1.1"
+fomat-macros = "0.2.1"
 ```
 
 And import the macros in your `.rs` file:
@@ -64,7 +64,7 @@ character inside the any kind of brackets.
 
 ```rust
 let list = vec![1, 2, 3];
-perrln!([=list]); // prints list = [1, 2, 3]
+epintln!([=list]); // prints list = [1, 2, 3]
 ```
 
 ## Why?

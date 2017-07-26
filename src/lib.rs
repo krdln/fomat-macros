@@ -5,7 +5,7 @@
 //! The names of macros in this crate are formed by
 //! removing the letter `r` from their `std` counterparts.
 //!
-//! Index: [**examples**](#examples);
+//! Index: [**examples**](#examples) • 
 //! [**syntax**](#syntax-overview):
 //! [`"string"`](#string-literals),
 //! [`()`, `[]`](#expressions-in--and--brackets),
@@ -13,8 +13,8 @@
 //! [`for`](#for-loops),
 //! [`if`](#if-and-if-let),
 //! [`match`](#match),
-//! [`=`](#debugging-shorthand);
-//! [**troubleshooting**](#troubleshooting);
+//! [`=`](#debugging-shorthand) • 
+//! [**troubleshooting**](#troubleshooting) • 
 //! [**macros**](#macros)
 //!
 //! # Examples
@@ -622,7 +622,7 @@ macro_rules! pintln {
     }
 }
 
-/// Prints to stderr.
+/// Prints to stderr. Analogous to `eprint!`.
 ///
 /// See the crate root for general help on the syntax.
 ///
@@ -640,11 +640,11 @@ macro_rules! pintln {
 /// ```no_run
 /// # #[macro_use] extern crate fomat_macros;
 /// # fn main() {
-/// perr!("foo")
+/// epint!("foo")
 /// # }
 /// ```
 #[macro_export]
-macro_rules! perr {
+macro_rules! epint {
     ($($arg:tt)*) => {
         {
             use ::std::io::Write;
@@ -654,9 +654,14 @@ macro_rules! perr {
     }
 }
 
-/// Prints to stderr, with an appended newline.
+/// Same as `epint`
+#[macro_export]
+#[deprecated(since="0.2.1", note="use `epint` instead")]
+macro_rules! perr { ($($arg:tt)*) => { epint!($($arg)*) } }
+
+/// Prints to stderr, with an appended newline. Analogous to `eprintln!`.
 ///
-/// See the docs for [`perr!`](macro.perr.html) for more info.
+/// See the docs for [`epint!`](macro.epint.html) for more info.
 ///
 /// # Examples
 ///
@@ -664,13 +669,18 @@ macro_rules! perr {
 /// # #[macro_use] extern crate fomat_macros;
 /// # fn main() {
 /// let x = 3;
-/// perrln!((=x));
+/// epintln!((=x));
 /// # }
 /// ```
 #[macro_export]
-macro_rules! perrln {
-    ($($arg:tt)*) => { perr!($($arg)* "\n") }
+macro_rules! epintln {
+    ($($arg:tt)*) => { epint!($($arg)* "\n") }
 }
+
+/// Same as `epintln`
+#[macro_export]
+#[deprecated(since="0.2.1", note="use `epint` instead")]
+macro_rules! perrln { ($($arg:tt)*) => { epintln!($($arg)*) } }
 
 /// Creates a formatted string. Analogous to `format!`.
 ///

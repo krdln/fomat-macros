@@ -18,6 +18,8 @@ const FILES: &'static [(&'static str, &'static str)] = &[
         fn foo() {
             pint!("stdout"(1));
             pintln!("stdout"(2));
+            epint!("stderr"(1));
+            epintln!("stderr"(2));
             perr!("stderr"(1));
             perrln!("stderr"(2));
         }
@@ -92,7 +94,7 @@ fn capturing() {
     );
 
     let expected_stdout = "stdout1stdout2\n";
-    let expected_stderr = "stderr1stderr2\n";
+    let expected_stderr = "stderr1stderr2\nstderr1stderr2\n";
 
     let output = Command::new("target/debug/pint")
         .current_dir(&pintdir)

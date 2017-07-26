@@ -1,6 +1,6 @@
 [package]
 name = "fomat-macros"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Michał Krasnoborski <mkrdln@gmail.com>"]
 
 description = "Alternative syntax for print/write/format-like macros with a small templating language"
