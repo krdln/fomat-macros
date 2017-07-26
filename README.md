@@ -94,12 +94,10 @@ What was the motivation to create this crate?
   };
   ```
 
-* Speed! `fomat!` may be even two times faster than `format!`
+* Speed! `fomat!` may be faster than `format!`
   (see `cargo bench`).
   That's because of optimization of how string literals
-  are handled, and slightly smarter string capacity estimation.
-  (The original `format!` could benefit from these optimizations
-  too, though).
+  are handled.
 
 ## Limitations
 
