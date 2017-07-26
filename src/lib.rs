@@ -585,13 +585,15 @@ macro_rules! witeln {
 macro_rules! pint {
     ($($arg:tt)*) => {
         {
-            #[cfg(not(test))] {
-                use ::std::io::Write;
-                let o = ::std::io::stdout();
-                wite!(o.lock(), $($arg)*).unwrap();
-            }
-            #[cfg(test)] {
-                print!("{}", fomat!($($arg)*))
+            {
+                #[cfg(not(test))] {
+                    use ::std::io::Write;
+                    let o = ::std::io::stdout();
+                    wite!(o.lock(), $($arg)*).unwrap();
+                }
+                #[cfg(test)] {
+                    print!("{}", fomat!($($arg)*))
+                }
             }
         }
     }
@@ -613,11 +615,13 @@ macro_rules! pint {
 #[macro_export]
 macro_rules! pintln {
     ($($arg:tt)*) => {
-        #[cfg(not(test))] {
-            pint!($($arg)* "\n")
-        }
-        #[cfg(test)] {
-            print!("{}", fomat!($($arg)* "\n"))
+        {
+            #[cfg(not(test))] {
+                pint!($($arg)* "\n")
+            }
+            #[cfg(test)] {
+                print!("{}", fomat!($($arg)* "\n"))
+            }
         }
     }
 }
@@ -923,4 +927,10 @@ fn non_static_writer() {
         (2+2)
     ).unwrap();
     assert_eq!(buf, "foo 4\n".as_bytes());
+}
+
+#[test]
+fn no_semicolon() {
+    if true { pint!("foo") } else { epint!("bar") }
+    pintln!("foo" "bar")
 }
