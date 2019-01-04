@@ -4,9 +4,8 @@
 [**crate**](https://crates.io/crates/fomat-macros)
 
 This crate provides alternative syntax for
-`write!`, `writeln!`, `print!`, `println!`, `epint!`, `epintln!` and `format!` macros
+`write!`, `writeln!`, `print!`, `println!`, `eprint!`, `eprintln!` and `format!` macros
 from the [Rust](https://www.rust-lang.org/) standard library.
-(plus two macros for printing on `stderr`).
 
 The names of macros in this crate
 are formed by removing the letter `r` from their `std` counterparts:
@@ -55,8 +54,8 @@ let s = fomat!( for x in &list { (x) " :: " } "nil" );
 // s == "1 :: 2 :: 3 :: nil"
 ```
 
-For loops can also use an optional separator. For details,
-see the docs.
+For loops can also use an optional separator.
+[For details, see the docs.](https://docs.rs/fomat-macros/0.2/fomat_macros/#for-loops)
 
 There's also a shorthand for debugging, which prints both
 the expression and value. To enable, put `=` as the first
