@@ -1,6 +1,6 @@
 [package]
 name = "fomat-macros"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Michał Krasnoborski <mkrdln@gmail.com>"]
 
 description = "Alternative syntax for print/write/format-like macros with a small templating language"
@@ -13,5 +13,5 @@ keywords = ["macro", "print", "template", "format", "interpolation"]
 license = "MIT"
 
 [dev-dependencies]
-tar = "0.4.9"
-tempdir = "0.3.5"
+tar = "=0.4.9"
+tempdir = "=0.3.5"

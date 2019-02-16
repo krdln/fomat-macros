@@ -19,8 +19,8 @@
 //!
 //! # Examples
 //!
-//! ```
-//! #[macro_use] extern crate fomat_macros;
+//! ```edition2018
+//! use fomat_macros::pintln;
 //!
 //! fn main() {
 //!     pintln!("Hello, World!");
@@ -31,6 +31,15 @@
 //!     pintln!("Formatting parameters: " {(1./3.):5.2}); // 0.333
 //!     pintln!("Debug: "[= 2 + 2]); // Debug: 2 + 2 = 4
 //! }
+//! ```
+//!
+//! For 2015 edition, use `#[macro_use]` when importing:
+//!
+//! ```
+//! #[macro_use] extern crate fomat_macros;
+//! # fn main() {
+//! #     pintln!("Hello, World!");
+//! # }
 //! ```
 //!
 //! This crate also contains a small templating language,
@@ -293,6 +302,42 @@ pub trait IdentityMutExt {
 
 impl<T> IdentityMutExt for T {}
 
+// Wrappers for std macros required for 2015 + 2018 compatibility,
+// with support for old rustc compilers. See
+// https://doc.rust-lang.org/edition-guide/rust-2018/macros/macro-changes.html#local-helper-macros
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! _fomat_macros__actual_concat {
+    ( $( $tt:tt )* ) => { concat!($($tt)*) }
+}
+
+// These two layers of concat are to support passing local macro arguments
+// to the concat macro.
+#[doc(hidden)]
+#[macro_export(local_inner_macros)]
+macro_rules! _fomat_macros__concat {
+    ( $( $tt:tt )* ) => { _fomat_macros__actual_concat!($($tt)*) }
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! _fomat_macros__print {
+    ( $( $tt:tt )* ) => { print!($($tt)*) }
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! _fomat_macros__write {
+    ( $( $tt:tt )* ) => { write!($($tt)*) }
+}
+
+#[doc(hidden)]
+#[macro_export]
+macro_rules! _fomat_macros__stringify {
+    ( $( $tt:tt )* ) => { stringify!($($tt)*) }
+}
+
 /// Writes to a specified writer. Analogous to `write!`.
 ///
 /// See the crate root for general help on the syntax.
@@ -322,28 +367,28 @@ impl<T> IdentityMutExt for T {}
 /// assert_eq!(v, "Hello, World! 4".as_bytes());
 /// # }
 /// ```
-#[macro_export]
+#[macro_export(local_inner_macros)]
 macro_rules! wite {
     // single tt rules ---------------------------------------------------------
-    (@one $w:ident, ($e:expr)) => { write!($w, "{}", $e) };
-    (@one $w:ident, [$e:expr]) => { write!($w, "{:?}", $e) };
+    (@one $w:ident, ($e:expr)) => { _fomat_macros__write!($w, "{}", $e) };
+    (@one $w:ident, [$e:expr]) => { _fomat_macros__write!($w, "{:?}", $e) };
     (@one $w:ident, {$e:tt : $($fmt:tt)*}) => {
-        write!($w, concat!("{:", wite!(@stringify-dense $($fmt)*), "}"), $e)
+        _fomat_macros__write!($w, _fomat_macros__concat!("{:", wite!(@stringify-dense $($fmt)*), "}"), $e)
     };
     (@one $w:ident, {$($arg:tt)*}) => {
-        write!($w, $($arg)*)
+        _fomat_macros__write!($w, $($arg)*)
     };
     (@one $w:ident, $string:tt) => {
         {
             #[allow(unused_imports)]
             use $crate::WriteStrExt;
 
-            $w.write_str(concat!($string))
+            $w.write_str(_fomat_macros__concat!($string))
         }
     };
 
     (@stringify-dense) => { "" };
-    (@stringify-dense $($tt:tt)+) => { concat!( $(stringify!($tt)),+ ) };
+    (@stringify-dense $($tt:tt)+) => { _fomat_macros__concat!( $(stringify!($tt)),+ ) };
 
     // expression parsing (manually, because we can't use :expr before `{`)
     (@expr.. $w:ident {$($before:tt)*} ($($e:tt)*) {$($block:tt)*} $($rest:tt)* ) => {
@@ -473,13 +518,13 @@ macro_rules! wite {
 
     // equal-sign debugging
     (@rec $w:ident, (= $e:expr) $($rest:tt)*) => {
-        wite!(@rec $w, (concat!(stringify!($e), " = ")) ($e) $($rest)*)
+        wite!(@rec $w, (_fomat_macros__concat!(_fomat_macros__stringify!($e), " = ")) ($e) $($rest)*)
     };
     (@rec $w:ident, [= $e:expr] $($rest:tt)*) => {
-        wite!(@rec $w, (concat!(stringify!($e), " = ")) [$e] $($rest)*)
+        wite!(@rec $w, (_fomat_macros__concat!(_fomat_macros__stringify!($e), " = ")) [$e] $($rest)*)
     };
     (@rec $w:ident, {= $e:tt : $($fmt:tt)*} $($rest:tt)*) => {
-        wite!(@rec $w, (concat!(stringify!($e), " = ")) {$e : $($fmt)*} $($rest)*)
+        wite!(@rec $w, (_fomat_macros__concat!(_fomat_macros__stringify!($e), " = ")) {$e : $($fmt)*} $($rest)*)
     };
 
     // single tt
@@ -516,7 +561,7 @@ macro_rules! wite {
                         // do `let _: Option<&Write> = None;` though, because
                         // in case when writing to Formatter, the `Write` trait
                         // doesn't have to be in scope.
-                        let _ = write!(_w, "");
+                        let _ = _fomat_macros__write!(_w, "");
                     }
                     wite!(@rec _w, $($part)*);
                     Ok(())
@@ -543,7 +588,7 @@ macro_rules! wite {
 /// witeln!(file, "Hi").unwrap();
 /// # }
 /// ```
-#[macro_export]
+#[macro_export(local_inner_macros)]
 macro_rules! witeln {
     ($writer:expr, $($arg:tt)*) => { wite!($writer, $($arg)* "\n") };
     ($writer:expr) => { wite!($writer, "\n") };
@@ -581,7 +626,7 @@ macro_rules! witeln {
 /// pint!("four = "(2+2));
 /// # }
 /// ```
-#[macro_export]
+#[macro_export(local_inner_macros)]
 macro_rules! pint {
     ($($arg:tt)*) => {
         {
@@ -592,7 +637,7 @@ macro_rules! pint {
                     wite!(o.lock(), $($arg)*).unwrap();
                 }
                 #[cfg(test)] {
-                    print!("{}", fomat!($($arg)*))
+                    _fomat_macros__print!("{}", fomat!($($arg)*))
                 }
             }
         }
@@ -612,7 +657,7 @@ macro_rules! pint {
 /// pintln!((2 * 2));
 /// # }
 /// ```
-#[macro_export]
+#[macro_export(local_inner_macros)]
 macro_rules! pintln {
     ($($arg:tt)*) => {
         {
@@ -620,7 +665,7 @@ macro_rules! pintln {
                 pint!($($arg)* "\n")
             }
             #[cfg(test)] {
-                print!("{}", fomat!($($arg)* "\n"))
+                _fomat_macros__print!("{}", fomat!($($arg)* "\n"))
             }
         }
     }
@@ -647,7 +692,7 @@ macro_rules! pintln {
 /// epint!("foo")
 /// # }
 /// ```
-#[macro_export]
+#[macro_export(local_inner_macros)]
 macro_rules! epint {
     ($($arg:tt)*) => {
         {
@@ -659,7 +704,7 @@ macro_rules! epint {
 }
 
 /// Same as `epint`
-#[macro_export]
+#[macro_export(local_inner_macros)]
 #[deprecated(since="0.2.1", note="use `epint` instead")]
 macro_rules! perr { ($($arg:tt)*) => { epint!($($arg)*) } }
 
@@ -676,15 +721,23 @@ macro_rules! perr { ($($arg:tt)*) => { epint!($($arg)*) } }
 /// epintln!((=x));
 /// # }
 /// ```
-#[macro_export]
+#[macro_export(local_inner_macros)]
 macro_rules! epintln {
     ($($arg:tt)*) => { epint!($($arg)* "\n") }
 }
 
 /// Same as `epintln`
-#[macro_export]
+#[macro_export(local_inner_macros)]
 #[deprecated(since="0.2.1", note="use `epint` instead")]
 macro_rules! perrln { ($($arg:tt)*) => { epintln!($($arg)*) } }
+
+/// This macro is a no-op but forces its argument to be a string literal
+#[doc(hidden)]
+#[macro_export]
+macro_rules! _fomat_macros__force_str_literal {
+    // Concat forces the token to be a string literal.
+    ( $string:tt ) => { concat!($string) }
+}
 
 /// Creates a formatted string. Analogous to `format!`.
 ///
@@ -711,7 +764,7 @@ macro_rules! perrln { ($($arg:tt)*) => { epintln!($($arg)*) } }
 /// assert_eq!(s, "1;4;");
 /// # }
 /// ```
-#[macro_export]
+#[macro_export(local_inner_macros)]
 macro_rules! fomat {
     // capacity estimation -----------------------------------------------------
     (@cap ($len:expr, $multiplier:expr)) => {
@@ -756,8 +809,7 @@ macro_rules! fomat {
 
     // Now the only legal tt is a string literal
     (@cap ($len:expr, $mul:expr) $string:tt $($rest:tt)*) => {
-        // Concat forces the token to be a string literal.
-        fomat!(@cap ($len + concat!($string).len(), $mul) $($rest)*)
+        fomat!(@cap ($len + _fomat_macros__force_str_literal!($string).len(), $mul) $($rest)*)
     };
 
     // Ignores everything till after next block
@@ -934,3 +986,22 @@ fn no_semicolon() {
     if true { pint!("foo") } else { epint!("bar") }
     pintln!("foo" "bar")
 }
+
+#[cfg(test)]
+#[doc(hidden)]
+/// Test calling macros directly by path
+///
+/// ```edition2018
+/// {
+///     use std::io::Write;
+///     let _ = fomat_macros::wite!(std::io::stdout(), "hello, "("world"));
+/// }
+/// fomat_macros::pint!("hello, "("world"));
+/// fomat_macros::pintln!("hello, "("world"));
+/// fomat_macros::epint!("hello, "("world"));
+/// fomat_macros::epintln!("hello, "("world"));
+/// fomat_macros::perr!("hello, "("world"));
+/// fomat_macros::perrln!("hello, "("world"));
+/// let _ = fomat_macros::fomat!("hello, "("world"));
+/// ```
+pub struct Edition2018Compat {}
