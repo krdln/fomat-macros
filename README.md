@@ -18,14 +18,17 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-fomat-macros = "0.2.1"
+fomat-macros = "0.3.0"
 ```
 
-And import the macros in your `.rs` file:
+And `use` the macros in your `.rs` file, eg.:
 
 ```rust
-#[macro_use] extern crate fomat_macros;
+use fomat_macros::pintln;
 ```
+
+This version requires Rust 1.30. For support for older versions,
+[see version 0.2.1](https://github.com/krdln/fomat-macros/tree/v0.2.1).
 
 ## Examples
 
