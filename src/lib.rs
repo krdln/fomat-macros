@@ -269,34 +269,60 @@
 //! Remember, naked identifiers won't be printed
 //! unless you put them in parentheses.
 
-use std::io;
+use std::fmt;
 
 #[doc(hidden)]
-// Shortcut for writing string literals,
-// so they don't go through write_fmt machinery.
-pub trait WriteStrExt {
-    type Result;
-    fn write_str(&mut self, s: &str) -> Self::Result;
+pub struct DisplayOnce<F> {
+    closure: std::cell::Cell<Option<F>>
 }
 
-// The fmt::Write already has this method,
-// so we implement it only for W: io::Write.
-impl<W: io::Write> WriteStrExt for W {
-    type Result = io::Result<()>;
-    fn write_str(&mut self, s: &str) -> Self::Result {
-        self.write_all(s.as_bytes())
+impl<F> DisplayOnce<F>
+where
+    F: FnOnce(&mut fmt::Formatter) -> fmt::Result
+{
+    pub fn new(f: F) -> Self {
+        Self { closure: std::cell::Cell::new(Some(f)) }
     }
 }
 
-#[doc(hidden)]
-/// Allows to get `&mut T` given either lvalue `T` or `&mut T`.
-pub trait IdentityMutExt {
-    fn identity_mut(&mut self) -> &mut Self {
-        self
+impl<F> fmt::Display for DisplayOnce<F>
+where
+    F: FnOnce(&mut fmt::Formatter) -> fmt::Result
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self.closure.replace(None).take() {
+            Some(closure) => closure(f),
+            None => Ok(())
+        }
     }
 }
 
-impl<T> IdentityMutExt for T {}
+/// Wrapper implementing Display for every closure with matching signature
+///
+/// This wrapper implements Display for every closure implementing
+/// `Fn(&mut fmt::Formatter) -> fmt::Result`.
+///
+/// Can be create using [`lazy_fomat`][lazy_fomat]
+pub struct DisplayFn<F>(F);
+
+impl<F> DisplayFn<F>
+where
+    F: Fn(&mut fmt::Formatter) -> fmt::Result
+{
+    /// Creates an object which `Display::fmt` impl will call this closure.
+    pub fn new(f: F) -> Self { Self(f) }
+}
+
+
+impl<F> fmt::Display for DisplayFn<F>
+where
+    F: Fn(&mut fmt::Formatter) -> fmt::Result
+{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        (self.0)(f)
+    }
+}
+
 
 /// Writes to a specified writer. Analogous to `write!`.
 ///
@@ -330,22 +356,15 @@ impl<T> IdentityMutExt for T {}
 #[macro_export]
 macro_rules! wite {
     // single tt rules ---------------------------------------------------------
-    (@one $w:ident, ($e:expr)) => { write!($w, "{}", $e) };
-    (@one $w:ident, [$e:expr]) => { write!($w, "{:?}", $e) };
+    (@one $w:ident, ($e:expr)) => { ::std::fmt::Display::fmt(&$e, $w) };
+    (@one $w:ident, [$e:expr]) => { ::std::fmt::Debug::fmt(&$e, $w) };
     (@one $w:ident, {$e:tt : $($fmt:tt)*}) => {
         write!($w, concat!("{:", $crate::wite!(@stringify-dense $($fmt)*), "}"), $e)
     };
     (@one $w:ident, {$($arg:tt)*}) => {
         write!($w, $($arg)*)
     };
-    (@one $w:ident, $string:tt) => {
-        {
-            #[allow(unused_imports)]
-            use $crate::WriteStrExt;
-
-            $w.write_str(concat!($string))
-        }
-    };
+    (@one $w:ident, $string:tt) => { $w.write_str(concat!($string)) };
 
     (@stringify-dense) => { "" };
     (@stringify-dense $($tt:tt)+) => { concat!( $(stringify!($tt)),+ ) };
@@ -510,24 +529,14 @@ macro_rules! wite {
 
     // entry point -------------------------------------------------------------
     ($writer:expr, $($part:tt)*) => {
-        {
-            use $crate::IdentityMutExt;
-            // Using match instead of let to allow references to temporaries.
-            match $writer.identity_mut() {
-                _w => (||{
-                    if false {
-                        // This dummy write's purpose is to silence a warning
-                        // about "unused import `Write`". We can't just
-                        // do `let _: Option<&Write> = None;` though, because
-                        // in case when writing to Formatter, the `Write` trait
-                        // doesn't have to be in scope.
-                        let _ = write!(_w, "");
-                    }
-                    $crate::wite!(@rec _w, $($part)*);
-                    Ok(())
-                })()
-            }
-        }
+        write!(
+            $writer,
+            "{}",
+            $crate::DisplayOnce::new(|f| {
+                $crate::wite!(@rec f, $($part)*);
+                Ok(())
+            })
+        )
     };
 }
 
@@ -786,6 +795,56 @@ macro_rules! fomat {
     }
 }
 
+/// Creates a displayable object based on its arguments.
+///
+/// This macro works in a similar way to [`fomat`](fomat),
+/// but instead of `String` it returns an object ([`DisplayFn`](DisplayFn))
+/// that implements [`Display`][std::fmt::Display] and can be printed later
+/// (using `format`, `fomat` or calling `Display::fmt` directly).
+///
+/// See the [crate root](crate) for general help on the syntax.
+///
+/// Prefix the arguments with `move` to force moving all variables
+/// (can help when `'static` bound is required).
+///
+/// # Examples
+///
+/// Direct usage
+///
+/// ```
+/// # use fomat_macros::{fomat, lazy_fomat};
+/// let fence = lazy_fomat!(for _ in 0..5 { "-" });
+/// let s = fomat!((fence)" hello "(fence));
+///
+/// assert_eq!(s, "----- hello -----");
+/// ```
+///
+/// Returning `impl Display`
+///
+/// ```
+/// # use fomat_macros::lazy_fomat;
+/// fn greet(name: String) -> impl ::std::fmt::Display {
+///     lazy_fomat!(move "Hello, "(name)"!")
+/// }
+///
+/// assert_eq!(greet("World".into()).to_string(), "Hello, World!");
+/// ```
+#[macro_export]
+macro_rules! lazy_fomat {
+    (move $($arg:tt)*) => {
+        $crate::DisplayFn::new(move |f| {
+            $crate::wite!(@rec f, $($arg)*);
+            Ok(())
+        })
+    };
+    ($($arg:tt)*) => {
+        $crate::DisplayFn::new(|f| {
+            $crate::wite!(@rec f, $($arg)*);
+            Ok(())
+        })
+    };
+}
+
 #[test]
 fn basics() {
     let world = "World";
@@ -904,7 +963,6 @@ fn non_static_writer() {
     use std::io::Write;
     use std::io::Result;
     use std::fmt::Arguments;
-    use WriteStrExt;
 
     struct Prepender<'a, T: Write> {
         prefix: &'a str,
@@ -921,7 +979,7 @@ fn non_static_writer() {
         }
 
         fn write_fmt(&mut self, fmt: Arguments) -> Result<()> {
-            self.writer.write_str(self.prefix)?;
+            self.writer.write_all(self.prefix.as_bytes())?;
             self.writer.write_fmt(fmt)
         }
     }
@@ -938,4 +996,14 @@ fn non_static_writer() {
 fn no_semicolon() {
     if true { pint!("foo") } else { epint!("bar") }
     pintln!("foo" "bar")
+}
+
+#[test]
+fn move_and_borrow() {
+    // Test if fomat! arguments can move some and borrow other variables.
+    let iter = vec![1, 2, 3].into_iter();
+    let borrow_me = vec![1, 2, 3];
+    let s = fomat!(for x in iter { (x) } (borrow_me.len()));
+    assert_eq!(s, "1233");
+    assert_eq!(borrow_me, [1, 2, 3]);
 }
