@@ -97,9 +97,10 @@ What was the motivation to create this crate?
   ```
 
 * Speed! `fomat!` may be faster than `format!`
-  (see `cargo bench`).
-  That's because of optimization of how string literals
-  are handled.
+  (see `cargo bench`). That's because there's
+  just one virtual call for single invocation
+  of `fomat!` instead of one per each argument
+  in `std::format!`.
 
 ## Limitations
 
