@@ -18,7 +18,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-fomat-macros = "0.3.0"
+fomat-macros = "0.3.1"
 ```
 
 And `use` the macros in your `.rs` file, eg.:
