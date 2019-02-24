@@ -1,11 +1,11 @@
 [package]
 name = "fomat-macros"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Michał Krasnoborski <mkrdln@gmail.com>"]
 
 description = "Alternative syntax for print/write/format-like macros with a small templating language"
 
-documentation = "https://docs.rs/fomat-macros/0.3.0/fomat_macros/"
+documentation = "https://docs.rs/fomat-macros/0.3.1/fomat_macros/"
 repository = "https://github.com/krdln/fomat-macros"
 readme = "README.md"
 keywords = ["macro", "print", "template", "format", "interpolation"]
