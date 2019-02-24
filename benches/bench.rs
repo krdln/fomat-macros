@@ -29,6 +29,26 @@ fn short_format(b: &mut Bencher) {
 }
 
 #[bench]
+fn two_fomat(b: &mut Bencher) {
+    b.iter(|| fomat!("One"(3)(2+2)))
+}
+
+#[bench]
+fn two_format(b: &mut Bencher) {
+    b.iter(|| format!("One{}{}", 3, 2+2))
+}
+
+#[bench]
+fn three_fomat(b: &mut Bencher) {
+    b.iter(|| fomat!("One"(2)(3)(2+2)))
+}
+
+#[bench]
+fn three_format(b: &mut Bencher) {
+    b.iter(|| format!("One{}{}{}", 2, 3, 2+2))
+}
+
+#[bench]
 fn long_fomat(b: &mut Bencher) {
     let world = "world";
     b.iter(|| fomat!(
