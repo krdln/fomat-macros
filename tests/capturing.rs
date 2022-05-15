@@ -1,4 +1,4 @@
-extern crate tempdir;
+extern crate tempfile;
 extern crate tar;
 
 use std::path::Path;
@@ -83,7 +83,7 @@ fn capturing() {
         rootdir
     };
 
-    let pintdir = tempdir::TempDir::new("fomat-macros-capturing-test")
+    let pintdir = tempfile::TempDir::new()
         .expect("Can't create tempdir");
     unpack_files(pintdir.as_ref(), rootdir.to_str().unwrap());
 
