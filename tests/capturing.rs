@@ -2,6 +2,7 @@ extern crate tempfile;
 extern crate tar;
 
 use std::path::Path;
+use tempfile::Builder;
 
 const FILES: &'static [(&'static str, &'static str)] = &[
     ("Cargo.toml", r#"
@@ -83,7 +84,9 @@ fn capturing() {
         rootdir
     };
 
-    let pintdir = tempfile::TempDir::new()
+    let pintdir = Builder::new()
+        .prefix("fomat-macros-capturing-test")
+        .tempdir()
         .expect("Can't create tempdir");
     unpack_files(pintdir.as_ref(), rootdir.to_str().unwrap());
 
