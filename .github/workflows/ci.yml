@@ -1,0 +1,33 @@
+name: Rust
+
+on:
+  push:
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Build debug version
+      run: cargo build --verbose
+
+    - name: Run tests
+      run: cargo test --verbose
+
+        #    - name: Check cargo fmt
+        #      run: cargo fmt --check
+
+    - name: Clippy stop at any warning
+      run: cargo clippy -- --deny warnings
+
+        #    - name: Build release version
+        #      run: cargo build --release --verbose
+
+
