@@ -1,3 +1,5 @@
+#![allow(clippy::needless_doctest_main)]
+
 //! This crate provides alternative syntax for
 //! `write!`, `writeln!`, `print!`, `println!` and `format!` macros.
 //! It also introduces macros to print on `stderr`.
